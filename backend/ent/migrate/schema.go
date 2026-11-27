@@ -77,6 +77,35 @@ var (
 			},
 		},
 	}
+	// IdentitiesColumns holds the columns for the "identities" table.
+	IdentitiesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "provider", Type: field.TypeEnum, Enums: []string{"github", "google", "email"}},
+		{Name: "provider_user_id", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "user_identities", Type: field.TypeInt},
+	}
+	// IdentitiesTable holds the schema information for the "identities" table.
+	IdentitiesTable = &schema.Table{
+		Name:       "identities",
+		Columns:    IdentitiesColumns,
+		PrimaryKey: []*schema.Column{IdentitiesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "identities_users_identities",
+				Columns:    []*schema.Column{IdentitiesColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "identity_provider_provider_user_id",
+				Unique:  true,
+				Columns: []*schema.Column{IdentitiesColumns[1], IdentitiesColumns[2]},
+			},
+		},
+	}
 	// LessonsColumns holds the columns for the "lessons" table.
 	LessonsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -124,6 +153,30 @@ var (
 			},
 		},
 	}
+	// SessionsColumns holds the columns for the "sessions" table.
+	SessionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "token_hash", Type: field.TypeString, Unique: true},
+		{Name: "expires_at", Type: field.TypeTime},
+		{Name: "revoked", Type: field.TypeBool, Default: false},
+		{Name: "device", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "user_sessions", Type: field.TypeInt},
+	}
+	// SessionsTable holds the schema information for the "sessions" table.
+	SessionsTable = &schema.Table{
+		Name:       "sessions",
+		Columns:    SessionsColumns,
+		PrimaryKey: []*schema.Column{SessionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "sessions_users_sessions",
+				Columns:    []*schema.Column{SessionsColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -141,7 +194,9 @@ var (
 		ContentVersionsTable,
 		CoursesTable,
 		ExercisesTable,
+		IdentitiesTable,
 		LessonsTable,
+		SessionsTable,
 		UsersTable,
 	}
 )
@@ -149,6 +204,8 @@ var (
 func init() {
 	ExercisesTable.ForeignKeys[0].RefTable = ContentVersionsTable
 	ExercisesTable.ForeignKeys[1].RefTable = CoursesTable
+	IdentitiesTable.ForeignKeys[0].RefTable = UsersTable
 	LessonsTable.ForeignKeys[0].RefTable = ContentVersionsTable
 	LessonsTable.ForeignKeys[1].RefTable = CoursesTable
+	SessionsTable.ForeignKeys[0].RefTable = UsersTable
 }

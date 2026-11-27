@@ -18,8 +18,12 @@ type Tx struct {
 	Course *CourseClient
 	// Exercise is the client for interacting with the Exercise builders.
 	Exercise *ExerciseClient
+	// Identity is the client for interacting with the Identity builders.
+	Identity *IdentityClient
 	// Lesson is the client for interacting with the Lesson builders.
 	Lesson *LessonClient
+	// Session is the client for interacting with the Session builders.
+	Session *SessionClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -156,7 +160,9 @@ func (tx *Tx) init() {
 	tx.ContentVersion = NewContentVersionClient(tx.config)
 	tx.Course = NewCourseClient(tx.config)
 	tx.Exercise = NewExerciseClient(tx.config)
+	tx.Identity = NewIdentityClient(tx.config)
 	tx.Lesson = NewLessonClient(tx.config)
+	tx.Session = NewSessionClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 

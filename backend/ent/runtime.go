@@ -8,8 +8,10 @@ import (
 	"github.com/ChristophBe/loopback/backend/ent/contentversion"
 	"github.com/ChristophBe/loopback/backend/ent/course"
 	"github.com/ChristophBe/loopback/backend/ent/exercise"
+	"github.com/ChristophBe/loopback/backend/ent/identity"
 	"github.com/ChristophBe/loopback/backend/ent/lesson"
 	"github.com/ChristophBe/loopback/backend/ent/schema"
+	"github.com/ChristophBe/loopback/backend/ent/session"
 	"github.com/ChristophBe/loopback/backend/ent/user"
 )
 
@@ -47,6 +49,16 @@ func init() {
 	exerciseDescTitle := exerciseFields[2].Descriptor()
 	// exercise.TitleValidator is a validator for the "title" field. It is called by the builders before save.
 	exercise.TitleValidator = exerciseDescTitle.Validators[0].(func(string) error)
+	identityFields := schema.Identity{}.Fields()
+	_ = identityFields
+	// identityDescProviderUserID is the schema descriptor for provider_user_id field.
+	identityDescProviderUserID := identityFields[1].Descriptor()
+	// identity.ProviderUserIDValidator is a validator for the "provider_user_id" field. It is called by the builders before save.
+	identity.ProviderUserIDValidator = identityDescProviderUserID.Validators[0].(func(string) error)
+	// identityDescCreatedAt is the schema descriptor for created_at field.
+	identityDescCreatedAt := identityFields[2].Descriptor()
+	// identity.DefaultCreatedAt holds the default value on creation for the created_at field.
+	identity.DefaultCreatedAt = identityDescCreatedAt.Default.(func() time.Time)
 	lessonFields := schema.Lesson{}.Fields()
 	_ = lessonFields
 	// lessonDescSlug is the schema descriptor for slug field.
@@ -73,6 +85,20 @@ func init() {
 	lessonDescBody := lessonFields[5].Descriptor()
 	// lesson.DefaultBody holds the default value on creation for the body field.
 	lesson.DefaultBody = lessonDescBody.Default.(string)
+	sessionFields := schema.Session{}.Fields()
+	_ = sessionFields
+	// sessionDescTokenHash is the schema descriptor for token_hash field.
+	sessionDescTokenHash := sessionFields[0].Descriptor()
+	// session.TokenHashValidator is a validator for the "token_hash" field. It is called by the builders before save.
+	session.TokenHashValidator = sessionDescTokenHash.Validators[0].(func(string) error)
+	// sessionDescRevoked is the schema descriptor for revoked field.
+	sessionDescRevoked := sessionFields[2].Descriptor()
+	// session.DefaultRevoked holds the default value on creation for the revoked field.
+	session.DefaultRevoked = sessionDescRevoked.Default.(bool)
+	// sessionDescCreatedAt is the schema descriptor for created_at field.
+	sessionDescCreatedAt := sessionFields[4].Descriptor()
+	// session.DefaultCreatedAt holds the default value on creation for the created_at field.
+	session.DefaultCreatedAt = sessionDescCreatedAt.Default.(func() time.Time)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescEmail is the schema descriptor for email field.
