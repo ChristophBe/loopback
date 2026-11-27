@@ -68,8 +68,12 @@ function bodyProblems(body) {
 
 // Returns [{ field, message }] for one content file. An empty array means valid.
 export function validateFile(file) {
-  const text = readFileSync(file, 'utf8')
-  if (file.endsWith('.md')) {
+  return validateText(readFileSync(file, 'utf8'), file.endsWith('.md'))
+}
+
+// Validates the text of a lesson (markdown) or of a JSON exercise.
+export function validateText(text, markdown) {
+  if (markdown) {
     const { data, content } = matter(text)
     return [...schemaProblems(lesson, data), ...bodyProblems(content)]
   }
@@ -100,4 +104,30 @@ export function validateTree(contentDir = join(root, 'content'), fixtureDir = jo
     }
   }
   return { failures, files: files.length, fixtures: fixtures.length }
+}
+
+// Fenced examples in a doc are marked with `<!-- example: <type> -->` on the line before the fence.
+const exampleRe = /<!-- example: (\w+) -->\n(`{3,}|~{3,})\w*\n([\s\S]*?)\n\2$/gm
+
+export function docExamples(docFile) {
+  return [...readFileSync(docFile, 'utf8').matchAll(exampleRe)].map((m) => ({ type: m[1], text: m[3] + '\n' }))
+}
+
+// Validates every marked example in a doc and requires one for each content type.
+export function validateDoc(docFile = join(root, 'docs/content-format.md')) {
+  const file = relative(root, docFile)
+  const examples = docExamples(docFile)
+  const failures = []
+  for (const type of ['lesson', 'quiz', 'flashcard', 'review']) {
+    const n = examples.filter((e) => e.type === type).length
+    if (n !== 1) failures.push({ file, field: 'examples', message: `must contain exactly one "${type}" example, found ${n}` })
+  }
+  for (const e of examples) {
+    const problems = validateText(e.text, e.type === 'lesson')
+    if (!problems.length && e.type !== 'lesson' && JSON.parse(e.text).type !== e.type) {
+      problems.push({ field: 'type', message: `must be "${e.type}" in the ${e.type} example` })
+    }
+    for (const p of problems) failures.push({ file, ...p, message: `${p.message} (${e.type} example)` })
+  }
+  return { failures, examples: examples.length }
 }
