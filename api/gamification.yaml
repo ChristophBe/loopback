@@ -1,0 +1,4 @@
+# Gamification rules. The backend serves these through GET /config.
+xpPerLesson: 50
+xpPerLevel: 500
+dailyGoalLessons: 1

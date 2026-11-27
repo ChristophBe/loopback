@@ -1,0 +1,10 @@
+<idea-plugin>
+    <id>dev.loopback</id>
+    <name>loopback</name>
+    <vendor>loopback</vendor>
+    <description>Daily 5-minute coding lessons for Rust and Go, inside the IDE.</description>
+    <depends>com.intellij.modules.platform</depends>
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="loopback" anchor="right" factoryClass="dev.loopback.LoopbackToolWindowFactory"/>
+    </extensions>
+</idea-plugin>

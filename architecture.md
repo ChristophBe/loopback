@@ -19,7 +19,7 @@ Workflow: edit the spec, run `make gen`, implement only the handler and business
 
 ## Overview
 
-```
+```text
  content/ (Markdown + YAML, git)
         │  cmd/import (validate against lesson.schema.json)
         ▼
@@ -36,7 +36,7 @@ The backend is the only component with state. The plugin and the web app are cli
 
 ## Repository layout
 
-```
+```text
 api/            openapi.yaml, schemas/, gamification.yaml
 backend/        Go module
   cmd/api       HTTP server

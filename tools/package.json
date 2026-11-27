@@ -1,0 +1,19 @@
+{
+  "name": "loopback-tools",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "lint:specs": "spectral lint --fail-severity=warn --ruleset ../.spectral.yaml ../api/openapi.yaml",
+    "lint:docs": "cd .. && markdownlint-cli2 \"**/*.md\"",
+    "lint:content": "node validate-content.mjs"
+  },
+  "devDependencies": {
+    "@stoplight/spectral-cli": "^6.17.1",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "gray-matter": "^4.0.3",
+    "markdownlint-cli2": "^0.24.2"
+  },
+  "packageManager": "pnpm@12.23.0"
+}

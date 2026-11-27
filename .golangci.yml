@@ -1,0 +1,23 @@
+version: "2"
+run:
+  timeout: 5m
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - revive
+    - gosec
+    - misspell
+    - unused
+    - ineffassign
+  exclusions:
+    paths:
+      - backend/gen
+formatters:
+  enable:
+    - gofumpt
+  exclusions:
+    paths:
+      - backend/gen

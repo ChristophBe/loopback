@@ -1,0 +1,75 @@
+// Package http wires the Echo server to the generated API interface.
+package http
+
+import (
+	"context"
+
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"github.com/sirupsen/logrus"
+
+	"github.com/ChristophBe/loopback/backend/gen"
+	"github.com/ChristophBe/loopback/backend/internal/gamification"
+)
+
+// BasePath is the prefix of every API route.
+const BasePath = "/api/v1"
+
+// Server implements gen.StrictServerInterface.
+type Server struct {
+	version string
+	rules   gamification.Rules
+}
+
+var _ gen.StrictServerInterface = (*Server)(nil)
+
+// New returns the Echo router with all API routes registered.
+func New(version string, rules gamification.Rules, log *logrus.Logger) *echo.Echo {
+	e := echo.New()
+	e.HideBanner = true
+	e.HidePort = true
+	e.Use(middleware.RequestID())
+	e.Use(requestLogger(log))
+	e.Use(middleware.Recover())
+
+	s := &Server{version: version, rules: rules}
+	gen.RegisterHandlersWithBaseURL(e, gen.NewStrictHandler(s, nil), BasePath)
+	return e
+}
+
+// GetHealth reports that the API is up.
+func (s *Server) GetHealth(context.Context, gen.GetHealthRequestObject) (gen.GetHealthResponseObject, error) {
+	return gen.GetHealth200JSONResponse{Status: gen.Ok}, nil
+}
+
+// GetConfig returns the API version and the gamification rules.
+func (s *Server) GetConfig(context.Context, gen.GetConfigRequestObject) (gen.GetConfigResponseObject, error) {
+	return gen.GetConfig200JSONResponse{
+		Version: s.version,
+		Gamification: gen.GamificationRules{
+			XpPerLesson:      s.rules.XpPerLesson,
+			XpPerLevel:       s.rules.XpPerLevel,
+			DailyGoalLessons: s.rules.DailyGoalLessons,
+		},
+	}, nil
+}
+
+func requestLogger(log *logrus.Logger) echo.MiddlewareFunc {
+	return middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogMethod:    true,
+		LogURI:       true,
+		LogStatus:    true,
+		LogRequestID: true,
+		LogLatency:   true,
+		LogValuesFunc: func(_ echo.Context, v middleware.RequestLoggerValues) error {
+			log.WithFields(logrus.Fields{
+				"request_id": v.RequestID,
+				"method":     v.Method,
+				"uri":        v.URI,
+				"status":     v.Status,
+				"latency":    v.Latency.String(),
+			}).Info("request")
+			return nil
+		},
+	})
+}
