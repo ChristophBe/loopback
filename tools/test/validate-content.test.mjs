@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
@@ -96,4 +96,12 @@ test('referenceSolution accepts relative directories and rejects unsafe paths', 
   const re = new RegExp(schema.properties.referenceSolution.pattern)
   for (const ok of ['solutions/01-a', 'solutions', 'a.b/c_d']) assert.ok(re.test(ok), ok)
   for (const bad of ['', '.', './x', 'a/./b', '..', 'a/..', 'a/../b', '/abs', 'a/', 'a//b', 'a\\b']) assert.ok(!re.test(bad), bad)
+})
+
+test('solutions directories are not validated as content', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'content-'))
+  mkdirSync(join(dir, 'go/p/solutions/01'), { recursive: true })
+  writeFileSync(join(dir, 'go/p/solutions/01/notes.md'), 'not a lesson')
+  writeFileSync(join(dir, 'go/p/solutions/01/data.json'), '{}')
+  assert.equal(validateTree(dir).files, 0)
 })
