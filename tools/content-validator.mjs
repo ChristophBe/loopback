@@ -90,12 +90,17 @@ export function validateText(text, markdown) {
   return schemaProblems(validate, data)
 }
 
+// template-* directories hold the learner template repos and solutions directories the reference solutions, not content.
+export const isContentPath = (contentDir, file) => {
+  const segments = relative(contentDir, file).split('/')
+  return !segments[0].startsWith('template-') && !segments.includes('solutions')
+}
+
 // Validates every content file under dir, plus the check-result fixtures.
 export function validateTree(contentDir = join(root, 'content'), fixtureDir = join(root, 'api/schemas/fixtures')) {
   const failures = []
-  // template-* directories hold the learner template repos and solutions directories the reference solutions, not lessons.
   const files = walk(contentDir)
-    .filter((f) => !relative(contentDir, f).startsWith('template-') && !relative(contentDir, f).split('/').includes('solutions'))
+    .filter((f) => isContentPath(contentDir, f))
     .filter((f) => /\.(md|json)$/.test(f))
   for (const file of files) {
     for (const p of validateFile(file)) failures.push({ file: relative(root, file), ...p })

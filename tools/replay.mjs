@@ -9,7 +9,7 @@ import { pathToFileURL } from 'node:url'
 
 import matter from 'gray-matter'
 
-import { root, walk } from './content-validator.mjs'
+import { isContentPath, root, walk } from './content-validator.mjs'
 
 export const languages = ['go', 'rust']
 export const testCommands = { go: ['go', 'test', './...'], rust: ['cargo', 'test'] }
@@ -22,7 +22,7 @@ const runCommand = ([cmd, ...args], cwd) => {
 // Lessons by language, each list sorted by project and order. Lessons live outside template-* and solutions dirs.
 export function loadLessons(contentDir) {
   const lessons = walk(contentDir)
-    .filter((f) => f.endsWith('.md') && !relative(contentDir, f).split('/').some((s) => s.startsWith('template-') || s === 'solutions'))
+    .filter((f) => f.endsWith('.md') && isContentPath(contentDir, f))
     .map((file) => ({ file, ...matter(readFileSync(file, 'utf8')).data }))
   return Object.fromEntries(
     languages.map((l) => [l, lessons.filter((x) => x.language === l).sort((a, b) => a.project.localeCompare(b.project) || a.order - b.order)]),
