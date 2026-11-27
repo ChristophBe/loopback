@@ -5,6 +5,10 @@ package ent
 import (
 	"time"
 
+	"github.com/ChristophBe/loopback/backend/ent/contentversion"
+	"github.com/ChristophBe/loopback/backend/ent/course"
+	"github.com/ChristophBe/loopback/backend/ent/exercise"
+	"github.com/ChristophBe/loopback/backend/ent/lesson"
 	"github.com/ChristophBe/loopback/backend/ent/schema"
 	"github.com/ChristophBe/loopback/backend/ent/user"
 )
@@ -13,6 +17,62 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	contentversionFields := schema.ContentVersion{}.Fields()
+	_ = contentversionFields
+	// contentversionDescChecksum is the schema descriptor for checksum field.
+	contentversionDescChecksum := contentversionFields[0].Descriptor()
+	// contentversion.ChecksumValidator is a validator for the "checksum" field. It is called by the builders before save.
+	contentversion.ChecksumValidator = contentversionDescChecksum.Validators[0].(func(string) error)
+	// contentversionDescImportedAt is the schema descriptor for imported_at field.
+	contentversionDescImportedAt := contentversionFields[1].Descriptor()
+	// contentversion.DefaultImportedAt holds the default value on creation for the imported_at field.
+	contentversion.DefaultImportedAt = contentversionDescImportedAt.Default.(func() time.Time)
+	courseFields := schema.Course{}.Fields()
+	_ = courseFields
+	// courseDescProject is the schema descriptor for project field.
+	courseDescProject := courseFields[1].Descriptor()
+	// course.ProjectValidator is a validator for the "project" field. It is called by the builders before save.
+	course.ProjectValidator = courseDescProject.Validators[0].(func(string) error)
+	// courseDescTitle is the schema descriptor for title field.
+	courseDescTitle := courseFields[2].Descriptor()
+	// course.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	course.TitleValidator = courseDescTitle.Validators[0].(func(string) error)
+	exerciseFields := schema.Exercise{}.Fields()
+	_ = exerciseFields
+	// exerciseDescSlug is the schema descriptor for slug field.
+	exerciseDescSlug := exerciseFields[0].Descriptor()
+	// exercise.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
+	exercise.SlugValidator = exerciseDescSlug.Validators[0].(func(string) error)
+	// exerciseDescTitle is the schema descriptor for title field.
+	exerciseDescTitle := exerciseFields[2].Descriptor()
+	// exercise.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	exercise.TitleValidator = exerciseDescTitle.Validators[0].(func(string) error)
+	lessonFields := schema.Lesson{}.Fields()
+	_ = lessonFields
+	// lessonDescSlug is the schema descriptor for slug field.
+	lessonDescSlug := lessonFields[0].Descriptor()
+	// lesson.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
+	lesson.SlugValidator = lessonDescSlug.Validators[0].(func(string) error)
+	// lessonDescOrder is the schema descriptor for order field.
+	lessonDescOrder := lessonFields[1].Descriptor()
+	// lesson.OrderValidator is a validator for the "order" field. It is called by the builders before save.
+	lesson.OrderValidator = lessonDescOrder.Validators[0].(func(int) error)
+	// lessonDescTitle is the schema descriptor for title field.
+	lessonDescTitle := lessonFields[2].Descriptor()
+	// lesson.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	lesson.TitleValidator = lessonDescTitle.Validators[0].(func(string) error)
+	// lessonDescMinutes is the schema descriptor for minutes field.
+	lessonDescMinutes := lessonFields[3].Descriptor()
+	// lesson.MinutesValidator is a validator for the "minutes" field. It is called by the builders before save.
+	lesson.MinutesValidator = lessonDescMinutes.Validators[0].(func(int) error)
+	// lessonDescXp is the schema descriptor for xp field.
+	lessonDescXp := lessonFields[4].Descriptor()
+	// lesson.XpValidator is a validator for the "xp" field. It is called by the builders before save.
+	lesson.XpValidator = lessonDescXp.Validators[0].(func(int) error)
+	// lessonDescBody is the schema descriptor for body field.
+	lessonDescBody := lessonFields[5].Descriptor()
+	// lesson.DefaultBody holds the default value on creation for the body field.
+	lesson.DefaultBody = lessonDescBody.Default.(string)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescEmail is the schema descriptor for email field.
