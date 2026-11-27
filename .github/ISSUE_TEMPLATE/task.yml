@@ -1,0 +1,66 @@
+name: Task
+description: Technical work without a user-visible change. Rules are in docs/definition-of-ready.md.
+title: "<component>: <imperative, specific>"
+labels: ["task"]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: A maintainer adds the matching component label.
+      options: [backend, web, plugin, content, api-spec, infra]
+      multiple: true
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why this matters. Link the section of goal.md, mvp.md or architecture.md it comes from.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: A checklist of observable outcomes that can be answered with yes or no.
+      placeholder: "- [ ] "
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: What this issue does not cover, or `none`.
+    validations:
+      required: true
+  - type: textarea
+    id: interface
+    attributes:
+      label: Interface impact
+      description: Specs that change (api/openapi.yaml, api/schemas/, backend/ent/schema/, api/gamification.yaml), or `none`.
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Test approach
+      description: Which tests prove the criteria.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: "`Blocked by #n` for each blocker, or `none`."
+    validations:
+      required: true
+  - type: checkboxes
+    id: ready
+    attributes:
+      label: Definition of Ready
+      options:
+        - label: One pull request, at most about two days of work.
+          required: true
+        - label: No open questions remain.
+          required: true

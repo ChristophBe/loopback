@@ -1,0 +1,50 @@
+name: Content
+description: A lesson, quiz, flashcard set or bad-code review. Rules are in docs/definition-of-ready.md.
+title: "content: <language> <project> lesson NN <topic>"
+labels: ["enhancement", "content"]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why this lesson is needed. Link the section of goal.md, mvp.md or architecture.md it comes from.
+    validations:
+      required: true
+  - type: textarea
+    id: objective
+    attributes:
+      label: Learning objective
+      description: The one thing the learner can do afterwards.
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Lesson details
+      description: Language, project, lesson number, owned files, XP and minutes, starter code, tests, hints and the explanation for each likely failure.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Include that the content lint passes and that the lesson works with the reference solution of the lessons before it.
+      placeholder: "- [ ] "
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: "`Blocked by #n` for each blocker, or `none`."
+    validations:
+      required: true
+  - type: checkboxes
+    id: ready
+    attributes:
+      label: Definition of Ready
+      options:
+        - label: One pull request, at most about two days of work.
+          required: true
+        - label: No open questions remain.
+          required: true

@@ -1,0 +1,71 @@
+name: Bug
+description: Something is broken or behaves wrongly. Rules are in docs/definition-of-ready.md.
+title: "<component>: <what is wrong>"
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: A maintainer adds the matching component label.
+      options: [backend, web, plugin, content, api-spec, infra]
+      multiple: true
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Version or commit, OS, IDE and version or browser. Add the Go or Rust version when a check is involved.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered, minimal, starting from a clean state such as `make reset`.
+      placeholder: "1. "
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: One statement.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: One statement.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Log lines, request ID, screenshot or failing test output.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Frequency and impact
+      description: Always or sometimes, and what it blocks (a lesson, correct XP, nothing but looks).
+    validations:
+      required: true
+  - type: textarea
+    id: related
+    attributes:
+      label: Related issues
+      description: Link related issues or write `none found` after searching.
+    validations:
+      required: true
+  - type: textarea
+    id: cause
+    attributes:
+      label: Suspected cause
+      description: Optional. Only a suspicion.
+    validations:
+      required: false
