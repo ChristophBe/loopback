@@ -1,0 +1,72 @@
+openapi: 3.0.3
+info:
+  title: loopback API
+  version: 0.1.0
+  description: REST API shared by the loopback web app and the JetBrains plugin.
+  contact:
+    name: loopback
+    url: https://github.com/ChristophBe/loopback
+tags:
+  - name: ops
+    description: Operational endpoints.
+  - name: gamification
+    description: XP, levels, streaks and the daily goal.
+servers:
+  - url: /api/v1
+paths:
+  /healthz:
+    get:
+      operationId: getHealth
+      summary: Report whether the API is up.
+      description: Returns status ok when the API can serve requests.
+      tags: [ops]
+      responses:
+        "200":
+          description: The API is up.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+  /config:
+    get:
+      operationId: getConfig
+      summary: Return the gamification rules and the API version.
+      description: Clients read the XP, level and daily goal rules here and keep no copy.
+      tags: [gamification]
+      responses:
+        "200":
+          description: The current configuration.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Config"
+components:
+  schemas:
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+    Config:
+      type: object
+      required: [version, gamification]
+      properties:
+        version:
+          type: string
+        gamification:
+          $ref: "#/components/schemas/GamificationRules"
+    GamificationRules:
+      type: object
+      required: [xpPerLesson, xpPerLevel, dailyGoalLessons]
+      properties:
+        xpPerLesson:
+          type: integer
+          minimum: 1
+        xpPerLevel:
+          type: integer
+          minimum: 1
+        dailyGoalLessons:
+          type: integer
+          minimum: 1

@@ -32,7 +32,7 @@ Use no icon set. Use the characters `>`, `$`, `_`, `✓`, `✗`, `!`, `·` and `
 
 ## Components
 
-The components are plain markup with `lb-` class names. The reference styles and live previews are in the design system artifact: https://claude.ai/artifact/5dp6AJLGrT2i3xDkWGHVHa (private to the owner). Rules for each:
+The components are plain markup with `lb-` class names. The reference styles and live previews are in the design system artifact: <https://claude.ai/artifact/5dp6AJLGrT2i3xDkWGHVHa> (private to the owner). Rules for each:
 
 ### Button
 

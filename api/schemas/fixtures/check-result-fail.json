@@ -1,0 +1,7 @@
+{
+  "passed": false,
+  "tests": [
+    { "name": "TestParseSimpleString", "status": "fail", "durationMs": 3, "expected": "+OK\\r\\n", "got": "OK\\r\\n" },
+    { "name": "TestParseError", "status": "pass", "durationMs": 1 }
+  ]
+}

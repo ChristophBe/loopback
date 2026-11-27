@@ -1,0 +1,27 @@
+body {
+  margin: 0;
+  background: var(--lb-surface-0);
+  color: var(--lb-ink);
+  font-family: var(--lb-font-mono);
+  font-size: var(--lb-type-body-size);
+  line-height: var(--lb-type-body-line);
+}
+
+.page {
+  max-width: 72ch;
+  padding: var(--lb-space-4);
+}
+
+.label {
+  color: var(--lb-ink-muted);
+  font-size: var(--lb-type-label-size);
+}
+
+h1 {
+  font-size: var(--lb-type-title-size);
+  line-height: var(--lb-type-title-line);
+}
+
+.fail {
+  color: var(--lb-fail);
+}

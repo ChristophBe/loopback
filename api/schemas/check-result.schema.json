@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/ChristophBe/loopback/api/schemas/check-result.schema.json",
+  "title": "Check result",
+  "type": "object",
+  "required": ["passed", "tests"],
+  "additionalProperties": false,
+  "properties": {
+    "passed": { "type": "boolean" },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["pass", "fail", "hint"] },
+          "durationMs": { "type": "integer", "minimum": 0 },
+          "expected": { "type": "string" },
+          "got": { "type": "string" }
+        }
+      }
+    }
+  }
+}

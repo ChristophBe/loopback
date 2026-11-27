@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/ChristophBe/loopback/api/schemas/lesson.schema.json",
+  "title": "Lesson front matter",
+  "type": "object",
+  "required": ["id", "type", "language", "project", "order", "title", "minutes", "xp", "ownedFiles"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "type": { "enum": ["lesson", "quiz", "flashcard", "review"] },
+    "language": { "enum": ["go", "rust"] },
+    "project": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "order": { "type": "integer", "minimum": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "minutes": { "type": "integer", "minimum": 1, "maximum": 15 },
+    "xp": { "type": "integer", "minimum": 1 },
+    "ownedFiles": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }
+  }
+}
