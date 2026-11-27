@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/ChristophBe/loopback/api/schemas/flashcard.schema.json",
+  "title": "Flashcard exercise",
+  "type": "object",
+  "required": ["id", "type", "language", "project", "title", "cards"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "type": { "const": "flashcard" },
+    "language": { "enum": ["go", "rust"] },
+    "project": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "title": { "type": "string", "minLength": 1 },
+    "cards": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["front", "back"],
+        "additionalProperties": false,
+        "properties": {
+          "front": { "type": "string", "minLength": 1 },
+          "back": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
