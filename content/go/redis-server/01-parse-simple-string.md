@@ -10,6 +10,7 @@ xp: 50
 ownedFiles:
   - resp/parse.go
   - resp/parse_test.go
+referenceSolution: solutions/01-parse-simple-string
 hints:
   - A simple string starts with `+` and ends with `\r\n`.
   - Strip the prefix and the trailing `\r\n`, then return what is left.
