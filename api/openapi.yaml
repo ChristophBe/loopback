@@ -11,8 +11,12 @@ tags:
     description: Operational endpoints.
   - name: gamification
     description: XP, levels, streaks and the daily goal.
+  - name: auth
+    description: Sign-in with magic link, OAuth and the device-code flow, and token refresh.
 servers:
   - url: /api/v1
+security:
+  - bearerAuth: []
 paths:
   /healthz:
     get:
@@ -20,6 +24,7 @@ paths:
       summary: Report whether the API is up.
       description: Returns status ok when the API can serve requests.
       tags: [ops]
+      security: []
       responses:
         "200":
           description: The API is up.
@@ -33,6 +38,7 @@ paths:
       summary: Return the gamification rules and the API version.
       description: Clients read the XP, level and daily goal rules here and keep no copy.
       tags: [gamification]
+      security: []
       responses:
         "200":
           description: The current configuration.
@@ -40,8 +46,198 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Config"
+  /auth/magic-link:
+    post:
+      operationId: requestMagicLink
+      summary: Email a sign-in link.
+      description: Sends a single-use sign-in link to the address. The response is the same whether or not an account exists.
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MagicLinkRequest"
+      responses:
+        "202":
+          description: The link is on its way.
+        "400":
+          $ref: "#/components/responses/Error"
+  /auth/oauth/{provider}:
+    get:
+      operationId: startOAuth
+      summary: Start the OAuth sign-in with a provider.
+      description: Redirects the browser to the provider's authorization page.
+      tags: [auth]
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          description: The OAuth provider.
+          schema:
+            $ref: "#/components/schemas/OAuthProvider"
+      responses:
+        "302":
+          description: Redirect to the provider's authorization page.
+          headers:
+            Location:
+              description: The authorization URL of the provider.
+              schema:
+                type: string
+                format: uri
+        "404":
+          $ref: "#/components/responses/Error"
+  /auth/device:
+    post:
+      operationId: startDeviceAuthorization
+      summary: Start the device-code sign-in.
+      description: The plugin shows the user code and the verification URI, then polls POST /auth/token with the device code.
+      tags: [auth]
+      security: []
+      responses:
+        "200":
+          description: The device authorization.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceAuthorization"
+  /auth/token:
+    post:
+      operationId: exchangeDeviceCode
+      summary: Exchange a device code for tokens.
+      description: >-
+        Poll at the interval from POST /auth/device. While the user has not approved the code,
+        the response is 400 with error authorization_pending.
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TokenRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/Tokens"
+        "400":
+          $ref: "#/components/responses/Error"
+  /auth/refresh:
+    post:
+      operationId: refreshTokens
+      summary: Exchange a refresh token for new tokens.
+      description: The refresh token is single-use. The response carries a new pair.
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/Tokens"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token from POST /auth/token or POST /auth/refresh.
+  responses:
+    Error:
+      description: The request failed.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Tokens:
+      description: A new access and refresh token.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TokenResponse"
   schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Machine-readable code.
+          enum:
+            - invalid_request
+            - invalid_grant
+            - authorization_pending
+            - slow_down
+            - expired_token
+            - access_denied
+            - unauthorized
+            - not_found
+        errorDescription:
+          type: string
+          description: Human-readable detail.
+    MagicLinkRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+    OAuthProvider:
+      type: string
+      enum: [github, google]
+    DeviceAuthorization:
+      type: object
+      required: [deviceCode, userCode, verificationUri, interval, expiresIn]
+      properties:
+        deviceCode:
+          type: string
+          description: Secret the plugin sends to POST /auth/token.
+        userCode:
+          type: string
+          description: Short code the user enters at the verification URI.
+        verificationUri:
+          type: string
+          format: uri
+        interval:
+          type: integer
+          minimum: 1
+          description: Minimum seconds between polls.
+        expiresIn:
+          type: integer
+          minimum: 1
+          description: Seconds until the device code expires.
+    TokenRequest:
+      type: object
+      required: [deviceCode]
+      properties:
+        deviceCode:
+          type: string
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+    TokenResponse:
+      type: object
+      required: [accessToken, refreshToken, expiresIn]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+          minimum: 1
+          description: Seconds until the access token expires.
     Health:
       type: object
       required: [status]
