@@ -1,0 +1,6 @@
+{
+  "passed": false,
+  "tests": [
+    { "name": "cargo build", "status": "fail", "got": "error[E0277]: cannot add `&str` to `i32`\n --> src/lib.rs:2:7\n  |\n2 |     a + \"b\"\n  |       ^ no implementation for `i32 + &str`\n  |\n  = help: the trait `Add<&str>` is not implemented for `i32`\n  = help: the following other types implement trait `Add<Rhs>`:\n            `&i32` implements `Add<i32>`\n            `&i32` implements `Add`\n            `i32` implements `Add<&i32>`\n            `i32` implements `Add`\n\nFor more information about this error, try `rustc --explain E0277`." }
+  ]
+}

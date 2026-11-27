@@ -7,7 +7,7 @@ failures:
 
 ---- tests::adds_negative_numbers stdout ----
 
-thread 'tests::adds_negative_numbers' (3606569) panicked at src/lib.rs:16:9:
+thread 'tests::adds_negative_numbers' (1) panicked at src/lib.rs:16:9:
 assertion `left == right` failed
   left: -2
  right: -3

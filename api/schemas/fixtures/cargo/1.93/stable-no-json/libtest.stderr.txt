@@ -1,0 +1,7 @@
+error: the option `Z` is only accepted on the nightly compiler
+error: test failed, to rerun pass `--lib`
+error: the option `Z` is only accepted on the nightly compiler
+error: doctest failed, to rerun pass `--doc`
+error: 2 targets failed:
+    `--lib`
+    `--doc`
