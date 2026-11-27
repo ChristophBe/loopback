@@ -11,7 +11,44 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+// Defines values for ErrorError.
+const (
+	AccessDenied         ErrorError = "access_denied"
+	AuthorizationPending ErrorError = "authorization_pending"
+	ExpiredToken         ErrorError = "expired_token"
+	InvalidGrant         ErrorError = "invalid_grant"
+	InvalidRequest       ErrorError = "invalid_request"
+	NotFound             ErrorError = "not_found"
+	SlowDown             ErrorError = "slow_down"
+	Unauthorized         ErrorError = "unauthorized"
+)
+
+// Valid indicates whether the value is a known member of the ErrorError enum.
+func (e ErrorError) Valid() bool {
+	switch e {
+	case AccessDenied:
+		return true
+	case AuthorizationPending:
+		return true
+	case ExpiredToken:
+		return true
+	case InvalidGrant:
+		return true
+	case InvalidRequest:
+		return true
+	case NotFound:
+		return true
+	case SlowDown:
+		return true
+	case Unauthorized:
+		return true
+	default:
+		return false
+	}
+}
 
 // Defines values for HealthStatus.
 const (
@@ -28,11 +65,57 @@ func (e HealthStatus) Valid() bool {
 	}
 }
 
+// Defines values for OAuthProvider.
+const (
+	Github OAuthProvider = "github"
+	Google OAuthProvider = "google"
+)
+
+// Valid indicates whether the value is a known member of the OAuthProvider enum.
+func (e OAuthProvider) Valid() bool {
+	switch e {
+	case Github:
+		return true
+	case Google:
+		return true
+	default:
+		return false
+	}
+}
+
 // Config defines model for Config.
 type Config struct {
 	Gamification GamificationRules `json:"gamification"`
 	Version      string            `json:"version"`
 }
+
+// DeviceAuthorization defines model for DeviceAuthorization.
+type DeviceAuthorization struct {
+	// DeviceCode Secret the plugin sends to POST /auth/token.
+	DeviceCode string `json:"deviceCode"`
+
+	// ExpiresIn Seconds until the device code expires.
+	ExpiresIn int `json:"expiresIn"`
+
+	// Interval Minimum seconds between polls.
+	Interval int `json:"interval"`
+
+	// UserCode Short code the user enters at the verification URI.
+	UserCode        string `json:"userCode"`
+	VerificationUri string `json:"verificationUri"`
+}
+
+// Error defines model for Error.
+type Error struct {
+	// Error Machine-readable code.
+	Error ErrorError `json:"error"`
+
+	// ErrorDescription Human-readable detail.
+	ErrorDescription *string `json:"errorDescription,omitempty"`
+}
+
+// ErrorError Machine-readable code.
+type ErrorError string
 
 // GamificationRules defines model for GamificationRules.
 type GamificationRules struct {
@@ -49,8 +132,62 @@ type Health struct {
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
 
+// MagicLinkRequest defines model for MagicLinkRequest.
+type MagicLinkRequest struct {
+	Email openapi_types.Email `json:"email"`
+}
+
+// OAuthProvider defines model for OAuthProvider.
+type OAuthProvider string
+
+// RefreshRequest defines model for RefreshRequest.
+type RefreshRequest struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
+// TokenRequest defines model for TokenRequest.
+type TokenRequest struct {
+	DeviceCode string `json:"deviceCode"`
+}
+
+// TokenResponse defines model for TokenResponse.
+type TokenResponse struct {
+	AccessToken string `json:"accessToken"`
+
+	// ExpiresIn Seconds until the access token expires.
+	ExpiresIn    int    `json:"expiresIn"`
+	RefreshToken string `json:"refreshToken"`
+}
+
+// Tokens defines model for Tokens.
+type Tokens = TokenResponse
+
+// RequestMagicLinkJSONRequestBody defines body for RequestMagicLink for application/json ContentType.
+type RequestMagicLinkJSONRequestBody = MagicLinkRequest
+
+// RefreshTokensJSONRequestBody defines body for RefreshTokens for application/json ContentType.
+type RefreshTokensJSONRequestBody = RefreshRequest
+
+// ExchangeDeviceCodeJSONRequestBody defines body for ExchangeDeviceCode for application/json ContentType.
+type ExchangeDeviceCodeJSONRequestBody = TokenRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// StartDeviceAuthorization Start the device-code sign-in.
+	// (POST /auth/device)
+	StartDeviceAuthorization(ctx echo.Context) error
+	// RequestMagicLink Email a sign-in link.
+	// (POST /auth/magic-link)
+	RequestMagicLink(ctx echo.Context) error
+	// StartOAuth Start the OAuth sign-in with a provider.
+	// (GET /auth/oauth/{provider})
+	StartOAuth(ctx echo.Context, provider OAuthProvider) error
+	// RefreshTokens Exchange a refresh token for new tokens.
+	// (POST /auth/refresh)
+	RefreshTokens(ctx echo.Context) error
+	// ExchangeDeviceCode Exchange a device code for tokens.
+	// (POST /auth/token)
+	ExchangeDeviceCode(ctx echo.Context) error
 	// GetConfig Return the gamification rules and the API version.
 	// (GET /config)
 	GetConfig(ctx echo.Context) error
@@ -62,6 +199,58 @@ type ServerInterface interface {
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
+}
+
+// StartDeviceAuthorization converts echo context to params.
+func (w *ServerInterfaceWrapper) StartDeviceAuthorization(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.StartDeviceAuthorization(ctx)
+	return err
+}
+
+// RequestMagicLink converts echo context to params.
+func (w *ServerInterfaceWrapper) RequestMagicLink(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RequestMagicLink(ctx)
+	return err
+}
+
+// StartOAuth converts echo context to params.
+func (w *ServerInterfaceWrapper) StartOAuth(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "provider" -------------
+	var provider OAuthProvider
+
+	err = runtime.BindStyledParameterWithOptions("simple", "provider", ctx.Param("provider"), &provider, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter provider: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.StartOAuth(ctx, provider)
+	return err
+}
+
+// RefreshTokens converts echo context to params.
+func (w *ServerInterfaceWrapper) RefreshTokens(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.RefreshTokens(ctx)
+	return err
+}
+
+// ExchangeDeviceCode converts echo context to params.
+func (w *ServerInterfaceWrapper) ExchangeDeviceCode(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.ExchangeDeviceCode(ctx)
+	return err
 }
 
 // GetConfig converts echo context to params.
@@ -131,7 +320,197 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 
 	router.GET(options.BaseURL+"/healthz", wrapper.GetHealth, options.OperationMiddlewares["getHealth"]...)
 	router.GET(options.BaseURL+"/config", wrapper.GetConfig, options.OperationMiddlewares["getConfig"]...)
+	router.POST(options.BaseURL+"/auth/magic-link", wrapper.RequestMagicLink, options.OperationMiddlewares["requestMagicLink"]...)
+	router.GET(options.BaseURL+"/auth/oauth/:provider", wrapper.StartOAuth, options.OperationMiddlewares["startOAuth"]...)
+	router.POST(options.BaseURL+"/auth/device", wrapper.StartDeviceAuthorization, options.OperationMiddlewares["startDeviceAuthorization"]...)
+	router.POST(options.BaseURL+"/auth/token", wrapper.ExchangeDeviceCode, options.OperationMiddlewares["exchangeDeviceCode"]...)
+	router.POST(options.BaseURL+"/auth/refresh", wrapper.RefreshTokens, options.OperationMiddlewares["refreshTokens"]...)
 
+}
+
+type ErrorJSONResponse Error
+
+type TokensJSONResponse TokenResponse
+
+type StartDeviceAuthorizationRequestObject struct {
+}
+
+type StartDeviceAuthorizationResponseObject interface {
+	VisitStartDeviceAuthorizationResponse(w http.ResponseWriter) error
+}
+
+type StartDeviceAuthorization200JSONResponse DeviceAuthorization
+
+func (response StartDeviceAuthorization200JSONResponse) VisitStartDeviceAuthorizationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RequestMagicLinkRequestObject struct {
+	Body *RequestMagicLinkJSONRequestBody
+}
+
+type RequestMagicLinkResponseObject interface {
+	VisitRequestMagicLinkResponse(w http.ResponseWriter) error
+}
+
+type RequestMagicLink202Response struct {
+}
+
+func (response RequestMagicLink202Response) VisitRequestMagicLinkResponse(w http.ResponseWriter) error {
+	w.WriteHeader(202)
+	return nil
+}
+
+type RequestMagicLink400JSONResponse struct{ ErrorJSONResponse }
+
+func (response RequestMagicLink400JSONResponse) VisitRequestMagicLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response.ErrorJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartOAuthRequestObject struct {
+	Provider OAuthProvider `json:"provider"`
+}
+
+type StartOAuthResponseObject interface {
+	VisitStartOAuthResponse(w http.ResponseWriter) error
+}
+
+type StartOAuth302ResponseHeaders struct {
+	Location *string
+}
+
+type StartOAuth302Response struct {
+	Headers StartOAuth302ResponseHeaders
+}
+
+func (response StartOAuth302Response) VisitStartOAuthResponse(w http.ResponseWriter) error {
+	if response.Headers.Location != nil {
+		{
+			v, err := runtime.StyleParamWithOptions("simple", false, "Location", *response.Headers.Location, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: "uri"})
+			if err != nil {
+				return fmt.Errorf("error styling response header Location: %w", err)
+			}
+			w.Header().Set("Location", v)
+		}
+	}
+	w.WriteHeader(302)
+	return nil
+}
+
+type StartOAuth404JSONResponse struct{ ErrorJSONResponse }
+
+func (response StartOAuth404JSONResponse) VisitStartOAuthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response.ErrorJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshTokensRequestObject struct {
+	Body *RefreshTokensJSONRequestBody
+}
+
+type RefreshTokensResponseObject interface {
+	VisitRefreshTokensResponse(w http.ResponseWriter) error
+}
+
+type RefreshTokens200JSONResponse struct{ TokensJSONResponse }
+
+func (response RefreshTokens200JSONResponse) VisitRefreshTokensResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response.TokensJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshTokens400JSONResponse struct{ ErrorJSONResponse }
+
+func (response RefreshTokens400JSONResponse) VisitRefreshTokensResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response.ErrorJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RefreshTokens401JSONResponse Error
+
+func (response RefreshTokens401JSONResponse) VisitRefreshTokensResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExchangeDeviceCodeRequestObject struct {
+	Body *ExchangeDeviceCodeJSONRequestBody
+}
+
+type ExchangeDeviceCodeResponseObject interface {
+	VisitExchangeDeviceCodeResponse(w http.ResponseWriter) error
+}
+
+type ExchangeDeviceCode200JSONResponse struct{ TokensJSONResponse }
+
+func (response ExchangeDeviceCode200JSONResponse) VisitExchangeDeviceCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response.TokensJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ExchangeDeviceCode400JSONResponse struct{ ErrorJSONResponse }
+
+func (response ExchangeDeviceCode400JSONResponse) VisitExchangeDeviceCodeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response.ErrorJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
 }
 
 type GetConfigRequestObject struct {
@@ -178,6 +557,21 @@ func (response GetHealth200JSONResponse) VisitGetHealthResponse(w http.ResponseW
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// StartDeviceAuthorization Start the device-code sign-in.
+	// (POST /auth/device)
+	StartDeviceAuthorization(ctx context.Context, request StartDeviceAuthorizationRequestObject) (StartDeviceAuthorizationResponseObject, error)
+	// RequestMagicLink Email a sign-in link.
+	// (POST /auth/magic-link)
+	RequestMagicLink(ctx context.Context, request RequestMagicLinkRequestObject) (RequestMagicLinkResponseObject, error)
+	// StartOAuth Start the OAuth sign-in with a provider.
+	// (GET /auth/oauth/{provider})
+	StartOAuth(ctx context.Context, request StartOAuthRequestObject) (StartOAuthResponseObject, error)
+	// RefreshTokens Exchange a refresh token for new tokens.
+	// (POST /auth/refresh)
+	RefreshTokens(ctx context.Context, request RefreshTokensRequestObject) (RefreshTokensResponseObject, error)
+	// ExchangeDeviceCode Exchange a device code for tokens.
+	// (POST /auth/token)
+	ExchangeDeviceCode(ctx context.Context, request ExchangeDeviceCodeRequestObject) (ExchangeDeviceCodeResponseObject, error)
 	// GetConfig Return the gamification rules and the API version.
 	// (GET /config)
 	GetConfig(ctx context.Context, request GetConfigRequestObject) (GetConfigResponseObject, error)
@@ -199,6 +593,192 @@ func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareF
 type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
+}
+
+// StartDeviceAuthorization operation middleware
+func (sh *strictHandler) StartDeviceAuthorization(ctx echo.Context) error {
+	var request StartDeviceAuthorizationRequestObject
+
+	handler := func(ctx echo.Context, request any) (any, error) {
+		return sh.ssi.StartDeviceAuthorization(ctx.Request().Context(), request.(StartDeviceAuthorizationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartDeviceAuthorization")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(StartDeviceAuthorizationResponseObject); ok {
+		return validResponse.VisitStartDeviceAuthorizationResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RequestMagicLink operation middleware
+func (sh *strictHandler) RequestMagicLink(ctx echo.Context) error {
+	var request RequestMagicLinkRequestObject
+
+	var body RequestMagicLinkJSONRequestBody
+	var err error
+	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// A request validator built on kin-openapi's openapi3filter with
+		// KeepValidatedValue leaves the value it validated on the body. Bind
+		// that value, matching member names exactly, so the handler receives
+		// what was validated instead of a second, case-insensitive decode.
+		// Otherwise bind only the request body, so that path and query
+		// parameters are not also bound into the body struct.
+		if vb, ok := ctx.Request().Body.(interface{ ValidatedValue() any }); !ok || runtime.BindJSONValue(vb.ValidatedValue(), &body) != nil {
+			err = binder.BindBody(ctx, &body)
+		}
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding and
+		// the binder may do more than decode (for example call ctx.Validate).
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request any) (any, error) {
+		return sh.ssi.RequestMagicLink(ctx.Request().Context(), request.(RequestMagicLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RequestMagicLink")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RequestMagicLinkResponseObject); ok {
+		return validResponse.VisitRequestMagicLinkResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// StartOAuth operation middleware
+func (sh *strictHandler) StartOAuth(ctx echo.Context, provider OAuthProvider) error {
+	var request StartOAuthRequestObject
+
+	request.Provider = provider
+
+	handler := func(ctx echo.Context, request any) (any, error) {
+		return sh.ssi.StartOAuth(ctx.Request().Context(), request.(StartOAuthRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartOAuth")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(StartOAuthResponseObject); ok {
+		return validResponse.VisitStartOAuthResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// RefreshTokens operation middleware
+func (sh *strictHandler) RefreshTokens(ctx echo.Context) error {
+	var request RefreshTokensRequestObject
+
+	var body RefreshTokensJSONRequestBody
+	var err error
+	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// A request validator built on kin-openapi's openapi3filter with
+		// KeepValidatedValue leaves the value it validated on the body. Bind
+		// that value, matching member names exactly, so the handler receives
+		// what was validated instead of a second, case-insensitive decode.
+		// Otherwise bind only the request body, so that path and query
+		// parameters are not also bound into the body struct.
+		if vb, ok := ctx.Request().Body.(interface{ ValidatedValue() any }); !ok || runtime.BindJSONValue(vb.ValidatedValue(), &body) != nil {
+			err = binder.BindBody(ctx, &body)
+		}
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding and
+		// the binder may do more than decode (for example call ctx.Validate).
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request any) (any, error) {
+		return sh.ssi.RefreshTokens(ctx.Request().Context(), request.(RefreshTokensRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RefreshTokens")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RefreshTokensResponseObject); ok {
+		return validResponse.VisitRefreshTokensResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ExchangeDeviceCode operation middleware
+func (sh *strictHandler) ExchangeDeviceCode(ctx echo.Context) error {
+	var request ExchangeDeviceCodeRequestObject
+
+	var body ExchangeDeviceCodeJSONRequestBody
+	var err error
+	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// A request validator built on kin-openapi's openapi3filter with
+		// KeepValidatedValue leaves the value it validated on the body. Bind
+		// that value, matching member names exactly, so the handler receives
+		// what was validated instead of a second, case-insensitive decode.
+		// Otherwise bind only the request body, so that path and query
+		// parameters are not also bound into the body struct.
+		if vb, ok := ctx.Request().Body.(interface{ ValidatedValue() any }); !ok || runtime.BindJSONValue(vb.ValidatedValue(), &body) != nil {
+			err = binder.BindBody(ctx, &body)
+		}
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding and
+		// the binder may do more than decode (for example call ctx.Validate).
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request any) (any, error) {
+		return sh.ssi.ExchangeDeviceCode(ctx.Request().Context(), request.(ExchangeDeviceCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ExchangeDeviceCode")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ExchangeDeviceCodeResponseObject); ok {
+		return validResponse.VisitExchangeDeviceCodeResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
 }
 
 // GetConfig operation middleware

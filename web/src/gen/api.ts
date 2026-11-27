@@ -44,10 +44,149 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/magic-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email a sign-in link.
+         * @description Sends a single-use sign-in link to the address. The response is the same whether or not an account exists.
+         */
+        post: operations["requestMagicLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Start the OAuth sign-in with a provider.
+         * @description Redirects the browser to the provider's authorization page.
+         */
+        get: operations["startOAuth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/device": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start the device-code sign-in.
+         * @description The plugin shows the user code and the verification URI, then polls POST /auth/token with the device code.
+         */
+        post: operations["startDeviceAuthorization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exchange a device code for tokens.
+         * @description Poll at the interval from POST /auth/device. While the user has not approved the code, the response is 400 with error authorization_pending.
+         */
+        post: operations["exchangeDeviceCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Exchange a refresh token for new tokens.
+         * @description The refresh token is single-use. The response carries a new pair.
+         */
+        post: operations["refreshTokens"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Error: {
+            /**
+             * @description Machine-readable code.
+             * @enum {string}
+             */
+            error: "invalid_request" | "invalid_grant" | "authorization_pending" | "slow_down" | "expired_token" | "access_denied" | "unauthorized" | "not_found";
+            /** @description Human-readable detail. */
+            errorDescription?: string;
+        };
+        MagicLinkRequest: {
+            /** Format: email */
+            email: string;
+        };
+        /** @enum {string} */
+        OAuthProvider: "github" | "google";
+        DeviceAuthorization: {
+            /** @description Secret the plugin sends to POST /auth/token. */
+            deviceCode: string;
+            /** @description Short code the user enters at the verification URI. */
+            userCode: string;
+            /** Format: uri */
+            verificationUri: string;
+            /** @description Minimum seconds between polls. */
+            interval: number;
+            /** @description Seconds until the device code expires. */
+            expiresIn: number;
+        };
+        TokenRequest: {
+            deviceCode: string;
+        };
+        RefreshRequest: {
+            refreshToken: string;
+        };
+        TokenResponse: {
+            accessToken: string;
+            refreshToken: string;
+            /** @description Seconds until the access token expires. */
+            expiresIn: number;
+        };
         Health: {
             /** @enum {string} */
             status: "ok";
@@ -62,7 +201,26 @@ export interface components {
             dailyGoalLessons: number;
         };
     };
-    responses: never;
+    responses: {
+        /** @description The request failed. */
+        Error: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description A new access and refresh token. */
+        Tokens: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["TokenResponse"];
+            };
+        };
+    };
     parameters: never;
     requestBodies: never;
     headers: never;
@@ -108,6 +266,108 @@ export interface operations {
                     "application/json": components["schemas"]["Config"];
                 };
             };
+        };
+    };
+    requestMagicLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MagicLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description The link is on its way. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Error"];
+        };
+    };
+    startOAuth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The OAuth provider. */
+                provider: components["schemas"]["OAuthProvider"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redirect to the provider's authorization page. */
+            302: {
+                headers: {
+                    /** @description The authorization URL of the provider. */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["Error"];
+        };
+    };
+    startDeviceAuthorization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The device authorization. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceAuthorization"];
+                };
+            };
+        };
+    };
+    exchangeDeviceCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["Tokens"];
+            400: components["responses"]["Error"];
+        };
+    };
+    refreshTokens: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["Tokens"];
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
         };
     };
 }
