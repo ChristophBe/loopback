@@ -10,8 +10,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class FeedbackMapperTest {
-    private val fixtures = File("../api/schemas/fixtures")
-
     private val goLesson =
         LessonHints(
             hints = listOf("Look at the prefix.", "The reply starts with +."),
@@ -24,16 +22,20 @@ class FeedbackMapperTest {
             failureExplanations = mapOf("tests::adds_negative_numbers" to "Adding two negatives stays negative."),
         )
 
-    private fun go(name: String) = GoTestJsonParser.parse(File(fixtures, name).readText())
+    // The newest recorded toolchain version is enough here, the parsers are tested against every version.
+    private fun go(name: String): CheckResult {
+        val output = File(RecordedFixtures.versions("go").last(), "$name.jsonl").readText()
+        return GoTestJsonParser.parse(output)
+    }
 
     private fun cargo(case: String): CheckResult {
-        val json = File(fixtures, "cargo-$case/expected.json").readText()
+        val json = File(RecordedFixtures.versions("cargo").last(), "$case/expected.json").readText()
         return Gson().fromJson(json, CheckResult::class.java)
     }
 
     @Test
     fun goFailureShowsExpectedGotAndTheHintOfThatTest() {
-        val row = FeedbackMapper.map(go("go-fail.jsonl"), goLesson).rows.first { it.name == "TestParseSimpleString" }
+        val row = FeedbackMapper.map(go("fail"), goLesson).rows.first { it.name == "TestParseSimpleString" }
 
         assertEquals(Status.fail, row.status)
         assertEquals("\"+OK\\r\\n\"", row.expected)
@@ -53,7 +55,7 @@ class FeedbackMapperTest {
 
     @Test
     fun failureWithoutAnExplanationShowsTheRowWithoutAHint() {
-        val row = FeedbackMapper.map(go("go-fail.jsonl"), goLesson).rows.first { it.name == "TestParseError" }
+        val row = FeedbackMapper.map(go("fail"), goLesson).rows.first { it.name == "TestParseError" }
 
         assertEquals(Status.fail, row.status)
         assertEquals("\"-ERR\"", row.expected)
@@ -62,7 +64,7 @@ class FeedbackMapperTest {
 
     @Test
     fun lessonWithoutHintsYieldsRowsWithoutHints() {
-        val feedback = FeedbackMapper.map(go("go-fail.jsonl"), LessonHints())
+        val feedback = FeedbackMapper.map(go("fail"), LessonHints())
 
         assertTrue(feedback.rows.all { it.hint == null })
         assertTrue(feedback.generalHints.isEmpty())
@@ -70,12 +72,12 @@ class FeedbackMapperTest {
 
     @Test
     fun generalHintsKeepTheirOrderWhileTheRunFails() {
-        assertEquals(goLesson.hints, FeedbackMapper.map(go("go-fail.jsonl"), goLesson).generalHints)
+        assertEquals(goLesson.hints, FeedbackMapper.map(go("fail"), goLesson).generalHints)
     }
 
     @Test
     fun buildErrorRowTakesNoHintAndKeepsTheCompilerMessage() {
-        val feedback = FeedbackMapper.map(go("go-build-error.jsonl"), goLesson)
+        val feedback = FeedbackMapper.map(go("build-error"), goLesson)
 
         val row = feedback.rows.single()
         assertNull(row.hint)
@@ -87,7 +89,7 @@ class FeedbackMapperTest {
     fun passingRunShowsNoHintsEvenForExplainedTests() {
         val lesson = LessonHints(listOf("h"), mapOf("TestParseError" to "explained"))
 
-        val feedback = FeedbackMapper.map(go("go-pass.jsonl"), lesson)
+        val feedback = FeedbackMapper.map(go("pass"), lesson)
 
         assertTrue(feedback.passed)
         assertTrue(feedback.rows.all { it.status == Status.pass && it.hint == null })
