@@ -1,6 +1,6 @@
 plugins {
     kotlin("jvm") version "2.4.21"
-    id("org.jetbrains.intellij.platform") version "2.5.0"
+    id("org.jetbrains.intellij.platform") version "2.20.1"
     id("io.gitlab.arturbosch.detekt") version "1.23.8"
     id("org.jlleitschuh.gradle.ktlint") version "12.2.0"
 }
@@ -27,6 +27,7 @@ dependencies {
 
 kotlin {
     jvmToolchain(17)
+    compilerOptions.freeCompilerArgs.add("-jvm-default=no-compatibility")
 }
 
 intellijPlatform {
@@ -37,7 +38,7 @@ intellijPlatform {
     }
     pluginVerification {
         ides {
-            ide(org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdeaCommunity, "2024.3")
+            create(org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdeaCommunity, "2024.3")
         }
     }
 }
