@@ -92,8 +92,8 @@ type LessonSchemaJson struct {
 	Project string `json:"project" yaml:"project" mapstructure:"project"`
 
 	// Directory of the reference solution, relative to the directory of the lesson
-	// file, with no leading or trailing slash and no '..' segment. By convention it
-	// is solutions/<lesson file name without extension>, for example
+	// file, with no leading or trailing slash and no '.' or '..' segment. By
+	// convention it is solutions/<lesson file name without extension>, for example
 	// solutions/01-parse-simple-string next to 01-parse-simple-string.md. The
 	// directory holds one file per entry in ownedFiles, at the same relative path, so
 	// the replay job can copy them over the learner's project and prove the lesson
