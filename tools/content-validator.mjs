@@ -1,7 +1,7 @@
 // Validates content files against the schemas in api/schemas.
 // Lessons are Markdown files with YAML front matter. Quizzes, flashcards and reviews
 // are JSON files. The "type" field selects the schema for a JSON file.
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { lstatSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 
 import Ajv from 'ajv'
@@ -69,6 +69,16 @@ function bodyProblems(body) {
 // Directories next to a lesson that hold files of the lesson, not lessons or exercises.
 const lessonFileDirs = ['solutions', 'starter', 'tests']
 
+// True for UTF-8 text without NUL bytes, the same rule as the importer.
+function isText(buf) {
+  try {
+    new TextDecoder('utf-8', { fatal: true }).decode(buf)
+  } catch {
+    return false
+  }
+  return !buf.includes(0)
+}
+
 // Checks the starterFiles and testFiles directories of a lesson in lessonDir: each holds only
 // files listed in ownedFiles, and every ownedFiles entry is in one of them.
 function lessonFileProblems(data, lessonDir) {
@@ -86,8 +96,10 @@ function lessonFileProblems(data, lessonDir) {
       continue
     }
     for (const f of files) {
-      if (data.ownedFiles.includes(f)) present.add(f)
-      else problems.push({ field, message: `file "${f}" in "${dir}" is not listed in ownedFiles` })
+      if (!data.ownedFiles.includes(f)) problems.push({ field, message: `file "${f}" in "${dir}" is not listed in ownedFiles` })
+      else if (!lstatSync(join(root, f)).isFile()) problems.push({ field, message: `"${f}" in "${dir}" is not a regular file` })
+      else if (!isText(readFileSync(join(root, f)))) problems.push({ field, message: `file "${f}" in "${dir}" is not UTF-8 text` })
+      else present.add(f)
     }
   }
   const where = dirs.length === 2 ? 'starterFiles and testFiles directories' : `${dirs[0][0]} directory`

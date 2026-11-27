@@ -156,3 +156,11 @@ test('starter and tests directories are not walked for lessons', () => {
   const { files } = validateTree(contentDir)
   assert.equal(files, 0)
 })
+
+test('starter file that is not UTF-8 text is reported', () => {
+  const problems = validateFile(lessonTree({ ...complete, 'starter/01-a/resp/parse.go': 'a\0b' }))
+  assert.deepEqual(problems, [
+    { field: 'starterFiles', message: 'file "resp/parse.go" in "starter/01-a" is not UTF-8 text' },
+    { field: 'ownedFiles', message: 'file "resp/parse.go" is missing from the starterFiles and testFiles directories' },
+  ])
+})
