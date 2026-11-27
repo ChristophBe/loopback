@@ -9,4 +9,4 @@ build/
 .intellijPlatform/
 .kotlin/
 .claude/worktrees/
-target/
+content/template-*/target/
