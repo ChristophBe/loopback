@@ -9,3 +9,4 @@ build/
 .intellijPlatform/
 .kotlin/
 .claude/worktrees/
+target/
