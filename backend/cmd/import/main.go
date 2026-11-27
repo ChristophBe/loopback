@@ -33,7 +33,7 @@ func main() {
 	if err := run(ctx, log); err != nil {
 		log.WithError(err).Error("import failed")
 		stop()
-		os.Exit(1) // #nosec G104 -- stop is called explicitly because os.Exit skips defers
+		os.Exit(1)
 	}
 }
 
