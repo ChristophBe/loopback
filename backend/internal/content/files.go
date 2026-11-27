@@ -1,6 +1,7 @@
 package content
 
 import (
+	"bytes"
 	"io/fs"
 	"path"
 	"slices"
@@ -27,17 +28,21 @@ func (f *file) readDir(fsys fs.FS, field, dir string, owned []string) map[string
 			return nil
 		}
 		rel := strings.TrimPrefix(p, root+"/")
-		switch data, err := fs.ReadFile(fsys, p); {
+		switch {
 		case !d.Type().IsRegular():
 			f.addf(field, "%q in %q is not a regular file", rel, dir)
 		case !slices.Contains(owned, rel):
 			f.addf(field, "file %q in %q is not listed in ownedFiles", rel, dir)
-		case err != nil:
-			f.addf(field, "cannot read %q in %q: %v", rel, dir, err)
-		case !utf8.Valid(data) || strings.ContainsRune(string(data), 0):
-			f.addf(field, "file %q in %q is not UTF-8 text", rel, dir)
 		default:
-			files[rel] = string(data)
+			data, err := fs.ReadFile(fsys, p)
+			switch {
+			case err != nil:
+				f.addf(field, "cannot read %q in %q: %v", rel, dir, err)
+			case !utf8.Valid(data) || bytes.IndexByte(data, 0) >= 0:
+				f.addf(field, "file %q in %q is not UTF-8 text", rel, dir)
+			default:
+				files[rel] = string(data)
+			}
 		}
 		return nil
 	})
