@@ -21,7 +21,7 @@ dependencies {
         pluginVerifier()
         testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
     }
-    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("com.google.code.gson:gson:2.15.0")
     testImplementation(kotlin("test"))
 }
 
