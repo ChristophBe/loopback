@@ -24,11 +24,14 @@ const exercises = {
 
 export const requiredBodySections = lessonSchema.definitions.requiredBodySections.const
 
+// Skips Cargo build output (`target/`) inside the template repos; it holds JSON that is not content.
 export function walk(dir) {
-  return readdirSync(dir).flatMap((name) => {
-    const path = join(dir, name)
-    return statSync(path).isDirectory() ? walk(path) : [path]
-  })
+  return readdirSync(dir)
+    .filter((name) => name !== 'target')
+    .flatMap((name) => {
+      const path = join(dir, name)
+      return statSync(path).isDirectory() ? walk(path) : [path]
+    })
 }
 
 // Turns an Ajv error into "<field> <message>", naming the offending field.
