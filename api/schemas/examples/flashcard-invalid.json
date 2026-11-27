@@ -1,0 +1,10 @@
+{
+  "id": "Rust Ownership",
+  "type": "flashcard",
+  "language": "rust",
+  "project": "loopback",
+  "title": "Ownership",
+  "cards": [
+    { "front": "What happens to a value when its owner goes out of scope?" }
+  ]
+}

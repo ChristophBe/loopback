@@ -1,0 +1,14 @@
+{
+  "id": "go-ignored-error-review",
+  "type": "review",
+  "language": "go",
+  "project": "loopback",
+  "title": "Ignored error",
+  "code": {
+    "language": "go",
+    "source": "func read(path string) []byte {\n\tdata, _ := os.ReadFile(path)\n\treturn data\n}\n"
+  },
+  "flaggedLines": [
+    { "line": 0 }
+  ]
+}
