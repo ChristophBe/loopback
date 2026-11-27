@@ -35,6 +35,11 @@ intellijPlatform {
             sinceBuild = "243"
         }
     }
+    pluginVerification {
+        ides {
+            ide(org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdeaCommunity, "2024.3")
+        }
+    }
 }
 
 detekt {
