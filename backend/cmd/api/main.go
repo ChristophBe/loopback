@@ -9,8 +9,11 @@ import (
 	"os/signal"
 	"time"
 
+	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 
+	"github.com/ChristophBe/loopback/backend/ent"
+	"github.com/ChristophBe/loopback/backend/internal/auth"
 	"github.com/ChristophBe/loopback/backend/internal/gamification"
 	lbhttp "github.com/ChristophBe/loopback/backend/internal/http"
 )
@@ -27,7 +30,28 @@ func main() {
 		log.WithError(err).Fatal("load gamification rules")
 	}
 
-	e := lbhttp.New(version, rules, log)
+	authCfg, err := auth.LoadConfig(os.Getenv)
+	if err != nil {
+		log.WithError(err).Fatal("load auth config")
+	}
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL is not set")
+	}
+	db, err := ent.Open("postgres", dbURL)
+	if err != nil {
+		log.WithError(err).Fatal("open database")
+	}
+	defer func() { _ = db.Close() }()
+	authSvc, err := auth.New(db, authCfg)
+	if err != nil {
+		log.WithError(err).Fatal("create auth service")
+	}
+
+	e, err := lbhttp.New(version, rules, log, authSvc)
+	if err != nil {
+		log.WithError(err).Fatal("create server")
+	}
 	addr := env("API_ADDR", ":8080")
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)

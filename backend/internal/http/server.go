@@ -3,12 +3,14 @@ package http
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
 
 	"github.com/ChristophBe/loopback/backend/gen"
+	"github.com/ChristophBe/loopback/backend/internal/auth"
 	"github.com/ChristophBe/loopback/backend/internal/gamification"
 )
 
@@ -19,22 +21,29 @@ const BasePath = "/api/v1"
 type Server struct {
 	version string
 	rules   gamification.Rules
+	auth    *auth.Service
 }
 
 var _ gen.StrictServerInterface = (*Server)(nil)
 
 // New returns the Echo router with all API routes registered.
-func New(version string, rules gamification.Rules, log *logrus.Logger) *echo.Echo {
+func New(version string, rules gamification.Rules, log *logrus.Logger, authSvc *auth.Service) (*echo.Echo, error) {
+	spec, err := gen.GetSpec()
+	if err != nil {
+		return nil, fmt.Errorf("load embedded spec: %w", err)
+	}
+
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
 	e.Use(middleware.RequestID())
 	e.Use(requestLogger(log))
 	e.Use(middleware.Recover())
+	e.Use(authSvc.Middleware(spec, BasePath))
 
-	s := &Server{version: version, rules: rules}
+	s := &Server{version: version, rules: rules, auth: authSvc}
 	gen.RegisterHandlersWithBaseURL(e, gen.NewStrictHandler(s, nil), BasePath)
-	return e
+	return e, nil
 }
 
 // GetHealth reports that the API is up.

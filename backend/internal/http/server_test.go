@@ -19,7 +19,11 @@ func newServer() nethttp.Handler {
 	log := logrus.New()
 	log.SetOutput(io.Discard)
 	rules := gamification.Rules{XpPerLesson: 50, XpPerLevel: 500, DailyGoalLessons: 1}
-	return http.New("test", rules, log)
+	e, err := http.New("test", rules, log, nil)
+	if err != nil {
+		panic(err)
+	}
+	return e
 }
 
 func TestHealth(t *testing.T) {
@@ -64,7 +68,6 @@ func TestAuthEndpointsNotImplemented(t *testing.T) {
 		{nethttp.MethodGet, "/api/v1/auth/oauth/github", ""},
 		{nethttp.MethodPost, "/api/v1/auth/device", ""},
 		{nethttp.MethodPost, "/api/v1/auth/token", `{"deviceCode":"d"}`},
-		{nethttp.MethodPost, "/api/v1/auth/refresh", `{"refreshToken":"r"}`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
