@@ -27,6 +27,7 @@ func TestContentEntities(t *testing.T) {
 	l := client.Lesson.Create().
 		SetSlug("01-hello").SetOrder(1).SetTitle("Hello").SetMinutes(5).SetXp(10).
 		SetBody("## Objective").SetOwnedFiles([]string{"main.go"}).SetHints([]string{"read the test"}).
+		SetStarterFiles(map[string]string{"main.go": "package main\n"}).SetTestFiles(map[string]string{"main_test.go": "package main\n"}).
 		SetCourse(c).SetContentVersion(cv).SaveX(ctx)
 	e := client.Exercise.Create().
 		SetSlug("quiz-maps").SetType(exercise.TypeQuiz).SetTitle("Maps").
@@ -39,7 +40,8 @@ func TestContentEntities(t *testing.T) {
 	if len(got.Edges.Exercises) != 1 || got.Edges.Exercises[0].ID != e.ID {
 		t.Errorf("exercises = %v", got.Edges.Exercises)
 	}
-	if gl := client.Lesson.GetX(ctx, l.ID); gl.Slug != "01-hello" || gl.OwnedFiles[0] != "main.go" || gl.Hints[0] != "read the test" {
+	if gl := client.Lesson.GetX(ctx, l.ID); gl.Slug != "01-hello" || gl.OwnedFiles[0] != "main.go" || gl.Hints[0] != "read the test" ||
+		gl.StarterFiles["main.go"] != "package main\n" || gl.TestFiles["main_test.go"] != "package main\n" {
 		t.Errorf("lesson = %+v", gl)
 	}
 	if ge := client.Exercise.GetX(ctx, e.ID); ge.Type != exercise.TypeQuiz || ge.Payload["questions"] == nil {

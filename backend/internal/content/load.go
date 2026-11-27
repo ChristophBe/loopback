@@ -51,6 +51,8 @@ type Lesson struct {
 	XP                  int
 	Body                string
 	OwnedFiles          []string
+	StarterFiles        map[string]string // path in the project -> content
+	TestFiles           map[string]string // path in the project -> content
 	Hints               []string
 	FailureExplanations map[string]string
 }
@@ -71,6 +73,9 @@ type Bundle struct {
 	Exercises []Exercise
 }
 
+// lessonFileDirs are the directories next to a lesson that hold its files.
+var lessonFileDirs = map[string]bool{"solutions": true, "starter": true, "tests": true}
+
 // Load reads and validates every lesson (*.md) and exercise (*.json) under
 // root. Top-level template-* directories are skipped. When any file is
 // invalid, the error is a Problems value naming every file and field.
@@ -83,9 +88,9 @@ func Load(root string) (*Bundle, error) {
 			return err
 		}
 		if d.IsDir() {
-			// template-* hold learner template repos, solutions the reference
-			// solutions of lessons: neither contains lessons or exercises.
-			if (strings.HasPrefix(d.Name(), "template-") && path.Dir(rel) == ".") || (d.Name() == "solutions" && strings.Count(rel, "/") == 2) {
+			// template-* hold learner template repos, solutions, starter and
+			// tests the files of lessons: none contains lessons or exercises.
+			if (strings.HasPrefix(d.Name(), "template-") && path.Dir(rel) == ".") || (lessonFileDirs[d.Name()] && strings.Count(rel, "/") == 2) {
 				return fs.SkipDir
 			}
 			return nil
@@ -103,7 +108,7 @@ func Load(root string) (*Bundle, error) {
 		if len(parts) != 3 {
 			f.add("path", "must be <language>/<project>/<file>")
 		} else if ext == ".md" {
-			if l, ok := parseLesson(f, data, parts[0], parts[1]); ok {
+			if l, ok := parseLesson(f, fsys, data, parts[0], parts[1]); ok {
 				b.Lessons = append(b.Lessons, l)
 			}
 		} else if e, ok := parseExercise(f, data, parts[0], parts[1]); ok {
@@ -256,7 +261,7 @@ func (f *file) decode(doc map[string]any, v any) bool {
 	return true
 }
 
-func parseLesson(f *file, data []byte, dirLang, dirProject string) (Lesson, bool) {
+func parseLesson(f *file, fsys fs.FS, data []byte, dirLang, dirProject string) (Lesson, bool) {
 	front, body, ok := splitFrontMatter(string(data))
 	if !ok {
 		f.add("(front matter)", "is missing: the file must start with a --- block")
@@ -268,7 +273,7 @@ func parseLesson(f *file, data []byte, dirLang, dirProject string) (Lesson, bool
 		return Lesson{}, false
 	}
 	required := []string{"id", "type", "language", "project", "order", "title", "minutes", "xp", "ownedFiles"}
-	if !f.shape("", doc, required, "hints", "failureExplanations", "referenceSolution") {
+	if !f.shape("", doc, required, "hints", "failureExplanations", "referenceSolution", "starterFiles", "testFiles") {
 		return Lesson{}, false
 	}
 	var fm gen.LessonSchemaJson
@@ -286,14 +291,18 @@ func parseLesson(f *file, data []byte, dirLang, dirProject string) (Lesson, bool
 		f.add("xp", "must be 1 or more")
 	}
 	checkStrings(f, "ownedFiles", fm.OwnedFiles, true)
-	if fm.ReferenceSolution != nil && !validRelDir(*fm.ReferenceSolution) {
-		f.add("referenceSolution", "must be a relative directory without leading or trailing slash and without . or .. segments")
-	}
+	checkDir(f, "referenceSolution", fm.ReferenceSolution)
+	checkDir(f, "starterFiles", fm.StarterFiles)
+	checkDir(f, "testFiles", fm.TestFiles)
 	checkStrings(f, "hints", fm.Hints, false)
 	for _, k := range sortedKeys(fm.FailureExplanations) {
 		f.requireString("failureExplanations."+k, fm.FailureExplanations[k])
 	}
 	checkBody(f, body)
+	if len(f.problems) > 0 {
+		return Lesson{}, false
+	}
+	starterFiles, testFiles := f.lessonFiles(fsys, fm.StarterFiles, fm.TestFiles, fm.OwnedFiles)
 	if len(f.problems) > 0 {
 		return Lesson{}, false
 	}
@@ -307,14 +316,23 @@ func parseLesson(f *file, data []byte, dirLang, dirProject string) (Lesson, bool
 		XP:                  fm.Xp,
 		Body:                strings.TrimSpace(body),
 		OwnedFiles:          fm.OwnedFiles,
+		StarterFiles:        starterFiles,
+		TestFiles:           testFiles,
 		Hints:               fm.Hints,
 		FailureExplanations: fm.FailureExplanations,
 	}, true
 }
 
+// checkDir reports a directory field that breaks the path rules.
+func checkDir(f *file, field string, dir *string) {
+	if dir != nil && !validRelDir(*dir) {
+		f.add(field, "must be a relative directory without leading or trailing slash and without . or .. segments")
+	}
+}
+
 var segment = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
-// validRelDir mirrors the referenceSolution pattern of lesson.schema.json,
+// validRelDir mirrors the referenceSolution, starterFiles and testFiles pattern of lesson.schema.json,
 // which uses a lookahead that Go's regexp does not support.
 func validRelDir(v string) bool {
 	for _, s := range strings.Split(v, "/") {

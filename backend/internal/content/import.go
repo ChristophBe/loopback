@@ -118,7 +118,7 @@ func upsertLesson(ctx context.Context, tx *ent.Tx, c *ent.Course, cv *ent.Conten
 	if ent.IsNotFound(err) {
 		_, err = tx.Lesson.Create().
 			SetSlug(l.Slug).SetOrder(l.Order).SetTitle(l.Title).SetMinutes(l.Minutes).SetXp(l.XP).SetBody(l.Body).
-			SetOwnedFiles(l.OwnedFiles).SetHints(l.Hints).SetFailureExplanations(l.FailureExplanations).
+			SetOwnedFiles(l.OwnedFiles).SetStarterFiles(l.StarterFiles).SetTestFiles(l.TestFiles).SetHints(l.Hints).SetFailureExplanations(l.FailureExplanations).
 			SetCourse(c).SetContentVersion(cv).Save(ctx)
 		res.Created++
 		return err
@@ -127,14 +127,14 @@ func upsertLesson(ctx context.Context, tx *ent.Tx, c *ent.Course, cv *ent.Conten
 		return err
 	}
 	if cur.Order == l.Order && cur.Title == l.Title && cur.Minutes == l.Minutes && cur.Xp == l.XP && cur.Body == l.Body &&
-		same(cur.OwnedFiles, l.OwnedFiles) && same(cur.Hints, l.Hints) && same(cur.FailureExplanations, l.FailureExplanations) {
+		same(cur.OwnedFiles, l.OwnedFiles) && same(cur.StarterFiles, l.StarterFiles) && same(cur.TestFiles, l.TestFiles) && same(cur.Hints, l.Hints) && same(cur.FailureExplanations, l.FailureExplanations) {
 		res.Unchanged++
 		return nil
 	}
 	res.Updated++
 	return cur.Update().
 		SetOrder(l.Order).SetTitle(l.Title).SetMinutes(l.Minutes).SetXp(l.XP).SetBody(l.Body).
-		SetOwnedFiles(l.OwnedFiles).SetHints(l.Hints).SetFailureExplanations(l.FailureExplanations).
+		SetOwnedFiles(l.OwnedFiles).SetStarterFiles(l.StarterFiles).SetTestFiles(l.TestFiles).SetHints(l.Hints).SetFailureExplanations(l.FailureExplanations).
 		SetContentVersion(cv).Exec(ctx)
 }
 
