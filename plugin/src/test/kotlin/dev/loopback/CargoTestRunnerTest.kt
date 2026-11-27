@@ -11,17 +11,26 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CargoTestRunnerTest {
-    private val fixtures = File("../api/schemas/fixtures")
+    /** The recording folder of the cargo version under test; set by [eachVersion]. */
+    private var fixtures = File(".")
+
+    /** Runs [check] once for every recorded cargo version. */
+    private fun eachVersion(check: () -> Unit) =
+        RecordedFixtures.forEachVersion("cargo") { dir ->
+            fixtures = dir
+            check()
+        }
 
     private fun fixture(
         case: String,
         file: String,
-    ) = File(fixtures, "cargo-$case/$file").readText()
+    ) = File(fixtures, "$case/$file").readText()
 
     private fun expected(case: String) = Gson().fromJson(fixture(case, "expected.json"), CheckResult::class.java)
 
+    /** Text output has no per-test times, and lists the tests in the order the test threads finish. */
     private fun withoutDurations(result: CheckResult): CheckResult {
-        val tests = result.tests.map { it.copy(durationMs = null) }
+        val tests = result.tests.map { it.copy(durationMs = null) }.sortedBy { it.name }
         return result.copy(tests = tests)
     }
 
@@ -49,65 +58,68 @@ class CargoTestRunnerTest {
         case: String,
         preferJson: Boolean = true,
     ): Pair<CargoTestRunner, Recorded> {
-        val executor = Recorded(File(fixtures, "cargo-$case"))
+        val executor = Recorded(File(fixtures, case))
         return CargoTestRunner(File("."), executor, preferJson) to executor
     }
 
     @Test
-    fun parsesPassingLibtestJson() {
-        assertEquals(expected("pass"), CargoOutputParser.parseLibtestJson(fixture("pass", "libtest.stdout.jsonl")))
-    }
+    fun parsesPassingLibtestJson() =
+        eachVersion {
+            assertEquals(expected("pass"), CargoOutputParser.parseLibtestJson(fixture("pass", "libtest.stdout.jsonl")))
+        }
 
     @Test
-    fun failingTestYieldsNameExpectedAndGotFromLibtestJson() {
-        val result = CargoOutputParser.parseLibtestJson(fixture("fail", "libtest.stdout.jsonl"))!!
+    fun failingTestYieldsNameExpectedAndGotFromLibtestJson() =
+        eachVersion {
+            val result = CargoOutputParser.parseLibtestJson(fixture("fail", "libtest.stdout.jsonl"))!!
 
-        assertEquals(expected("fail"), result)
-        val failed = result.tests.single { it.status == Status.fail }
-        assertEquals("tests::adds_negative_numbers", failed.name)
-        assertEquals("-2", failed.expected)
-        assertEquals("-3", failed.got)
-    }
-
-    @Test
-    fun parsesPassingText() {
-        val result = CargoOutputParser.parseText(fixture("pass", "text.stdout.txt"))
-
-        assertEquals(withoutDurations(expected("pass")), result)
-    }
+            assertEquals(expected("fail"), result)
+            val failed = result.tests.single { it.status == Status.fail }
+            assertEquals("tests::adds_negative_numbers", failed.name)
+            assertEquals("-2", failed.expected)
+            assertEquals("-3", failed.got)
+        }
 
     @Test
-    fun failingTestYieldsNameExpectedAndGotFromText() {
-        val result = CargoOutputParser.parseText(fixture("fail", "text.stdout.txt"))!!
+    fun parsesPassingText() =
+        eachVersion {
+            val result = CargoOutputParser.parseText(fixture("pass", "text.stdout.txt"))
 
-        assertFalse(result.passed)
-        assertEquals(
-            withoutDurations(expected("fail")).tests.sortedBy { it.name },
-            result.tests.sortedBy { it.name },
-        )
-    }
+            assertEquals(withoutDurations(expected("pass")), withoutDurations(result!!))
+        }
 
     @Test
-    fun buildErrorYieldsOneFailRowWithTheCompilerMessage() {
-        val fromJsonRun = CargoOutputParser.parseBuildError(fixture("build-error", "libtest.stderr.txt"))
-        val fromTextRun = CargoOutputParser.parseBuildError(fixture("build-error", "text.stderr.txt"))
+    fun failingTestYieldsNameExpectedAndGotFromText() =
+        eachVersion {
+            val result = CargoOutputParser.parseText(fixture("fail", "text.stdout.txt"))!!
 
-        assertEquals(expected("build-error"), fromJsonRun)
-        assertEquals(expected("build-error"), fromTextRun)
-        assertTrue(
-            fromTextRun!!
-                .tests
-                .single()
-                .got!!
-                .startsWith("error[E0277]: cannot add `&str` to `i32`"),
-        )
-    }
+            assertFalse(result.passed)
+            assertEquals(
+                withoutDurations(expected("fail")).tests.sortedBy { it.name },
+                result.tests.sortedBy { it.name },
+            )
+        }
 
     @Test
-    fun aFailingTestIsNoBuildError() {
-        assertNull(CargoOutputParser.parseBuildError(fixture("fail", "text.stderr.txt")))
-        assertNull(CargoOutputParser.parseBuildError(fixture("stable-no-json", "libtest.stderr.txt")))
-    }
+    fun buildErrorYieldsOneFailRowWithTheCompilerMessage() =
+        eachVersion {
+            val fromJsonRun = CargoOutputParser.parseBuildError(fixture("build-error", "libtest.stderr.txt"))
+            val fromTextRun = CargoOutputParser.parseBuildError(fixture("build-error", "text.stderr.txt"))
+
+            assertEquals(expected("build-error"), fromJsonRun)
+            // rustc may print a different column for the same note in two runs, so only the start must match
+            val row = fromTextRun!!.tests.single()
+            assertFalse(fromTextRun.passed)
+            assertEquals(expected("build-error").tests.single().copy(got = null), row.copy(got = null))
+            assertTrue(row.got!!.startsWith("error[E0277]: cannot add `&str` to `i32`"))
+        }
+
+    @Test
+    fun aFailingTestIsNoBuildError() =
+        eachVersion {
+            assertNull(CargoOutputParser.parseBuildError(fixture("fail", "text.stderr.txt")))
+            assertNull(CargoOutputParser.parseBuildError(fixture("stable-no-json", "libtest.stderr.txt")))
+        }
 
     @Test
     fun outputWithoutTestsIsNotParsed() {
@@ -160,43 +172,50 @@ class CargoTestRunnerTest {
     }
 
     @Test
-    fun runnerPrefersLibtestJson() {
-        val (runner, executor) = runner("fail")
+    fun runnerPrefersLibtestJson() =
+        eachVersion {
+            val (runner, executor) = runner("fail")
 
-        assertEquals(expected("fail"), runner.run())
-        assertEquals(1, executor.commands.size)
-    }
-
-    @Test
-    fun runnerFallsBackToTextWhenLibtestJsonNeedsNightly() {
-        val json = Recorded(File(fixtures, "cargo-stable-no-json"))
-        val text = Recorded(File(fixtures, "cargo-fail"))
-        val executor =
-            ProcessExecutor { command, dir -> (if ("--format" in command) json else text).execute(command, dir) }
-
-        val result = CargoTestRunner(File("."), executor).run()
-
-        assertEquals(withoutDurations(expected("fail")).tests.sortedBy { it.name }, result.tests.sortedBy { it.name })
-        assertFalse(result.passed)
-        assertEquals(1, json.commands.size)
-        assertEquals(1, text.commands.size)
-    }
+            assertEquals(expected("fail"), runner.run())
+            assertEquals(1, executor.commands.size)
+        }
 
     @Test
-    fun runnerCanSkipLibtestJson() {
-        val (runner, executor) = runner("pass", preferJson = false)
+    fun runnerFallsBackToTextWhenLibtestJsonNeedsNightly() =
+        eachVersion {
+            val json = Recorded(File(fixtures, "stable-no-json"))
+            val text = Recorded(File(fixtures, "fail"))
+            val executor =
+                ProcessExecutor { command, dir -> (if ("--format" in command) json else text).execute(command, dir) }
 
-        assertEquals(withoutDurations(expected("pass")), runner.run())
-        assertEquals(listOf(listOf("cargo", "test", "--no-fail-fast")), executor.commands)
-    }
+            val result = CargoTestRunner(File("."), executor).run()
+
+            assertEquals(
+                withoutDurations(expected("fail")).tests.sortedBy { it.name },
+                result.tests.sortedBy { it.name },
+            )
+            assertFalse(result.passed)
+            assertEquals(1, json.commands.size)
+            assertEquals(1, text.commands.size)
+        }
 
     @Test
-    fun runnerReportsABuildErrorWithoutFallingBack() {
-        val (runner, executor) = runner("build-error")
+    fun runnerCanSkipLibtestJson() =
+        eachVersion {
+            val (runner, executor) = runner("pass", preferJson = false)
 
-        assertEquals(expected("build-error"), runner.run())
-        assertEquals(1, executor.commands.size)
-    }
+            assertEquals(withoutDurations(expected("pass")), withoutDurations(runner.run()))
+            assertEquals(listOf(listOf("cargo", "test", "--no-fail-fast")), executor.commands)
+        }
+
+    @Test
+    fun runnerReportsABuildErrorWithoutFallingBack() =
+        eachVersion {
+            val (runner, executor) = runner("build-error")
+
+            assertEquals(expected("build-error"), runner.run())
+            assertEquals(1, executor.commands.size)
+        }
 
     @Test
     fun runnerReportsAnUnrecognizedFailureAsOneFailRow() {
