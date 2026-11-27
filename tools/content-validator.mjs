@@ -93,9 +93,9 @@ export function validateText(text, markdown) {
 // Validates every content file under dir, plus the check-result fixtures.
 export function validateTree(contentDir = join(root, 'content'), fixtureDir = join(root, 'api/schemas/fixtures')) {
   const failures = []
-  // template-* directories hold the learner template repos, not lessons.
+  // template-* directories hold the learner template repos and solutions directories the reference solutions, not lessons.
   const files = walk(contentDir)
-    .filter((f) => !relative(contentDir, f).startsWith('template-'))
+    .filter((f) => !relative(contentDir, f).startsWith('template-') && !relative(contentDir, f).split('/').includes('solutions'))
     .filter((f) => /\.(md|json)$/.test(f))
   for (const file of files) {
     for (const p of validateFile(file)) failures.push({ file: relative(root, file), ...p })
