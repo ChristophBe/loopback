@@ -1,5 +1,6 @@
 package dev.loopback
 
+import dev.loopback.api.model.CheckResult
 import dev.loopback.api.model.CheckResultTestsInner.Status
 import java.io.File
 import kotlin.test.Test
@@ -9,43 +10,50 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class GoTestJsonParserTest {
-    private fun fixture(name: String) = GoTestJsonParser.parse(File("../api/schemas/fixtures/$name").readText())
+    /** Runs [check] for every recorded Go version with a function that parses the recording of a case. */
+    private fun eachVersion(check: (parse: (String) -> CheckResult) -> Unit) =
+        RecordedFixtures.forEachVersion("go") { dir ->
+            check { case -> GoTestJsonParser.parse(File(dir, "$case.jsonl").readText()) }
+        }
 
     @Test
-    fun passingRunPasses() {
-        val result = fixture("go-pass.jsonl")
+    fun passingRunPasses() =
+        eachVersion { parse ->
+            val result = parse("pass")
 
-        assertTrue(result.passed)
-        assertEquals(listOf("TestParseSimpleString", "TestParseError"), result.tests.map { it.name })
-        assertTrue(result.tests.all { it.status == Status.pass && it.expected == null && it.got == null })
-    }
-
-    @Test
-    fun failingTestYieldsNameExpectedAndGot() {
-        val result = fixture("go-fail.jsonl")
-
-        assertFalse(result.passed)
-        val first = result.tests[0]
-        assertEquals("TestParseSimpleString", first.name)
-        assertEquals(Status.fail, first.status)
-        assertEquals("\"+OK\\r\\n\"", first.expected)
-        assertEquals("\"OK\\r\\n\"", first.got)
-        assertEquals(0, first.durationMs)
-        assertEquals("\"-ERR\"", result.tests[1].expected)
-    }
+            assertTrue(result.passed)
+            assertEquals(listOf("TestParseSimpleString", "TestParseError"), result.tests.map { it.name })
+            assertTrue(result.tests.all { it.status == Status.pass && it.expected == null && it.got == null })
+        }
 
     @Test
-    fun buildErrorYieldsOneFailRowWithCompilerMessage() {
-        val result = fixture("go-build-error.jsonl")
+    fun failingTestYieldsNameExpectedAndGot() =
+        eachVersion { parse ->
+            val result = parse("fail")
 
-        assertFalse(result.passed)
-        assertEquals(1, result.tests.size)
-        val row = result.tests[0]
-        assertEquals(GoTestJsonParser.BUILD_ERROR_NAME, row.name)
-        assertEquals(Status.fail, row.status)
-        assertEquals("./parse.go:3:38: undefined: undefinedVar", row.got)
-        assertNull(row.expected)
-    }
+            assertFalse(result.passed)
+            val first = result.tests[0]
+            assertEquals("TestParseSimpleString", first.name)
+            assertEquals(Status.fail, first.status)
+            assertEquals("\"+OK\\r\\n\"", first.expected)
+            assertEquals("\"OK\\r\\n\"", first.got)
+            assertEquals(0, first.durationMs)
+            assertEquals("\"-ERR\"", result.tests[1].expected)
+        }
+
+    @Test
+    fun buildErrorYieldsOneFailRowWithCompilerMessage() =
+        eachVersion { parse ->
+            val result = parse("build-error")
+
+            assertFalse(result.passed)
+            assertEquals(1, result.tests.size)
+            val row = result.tests[0]
+            assertEquals(GoTestJsonParser.BUILD_ERROR_NAME, row.name)
+            assertEquals(Status.fail, row.status)
+            assertEquals("./parse.go:3:38: undefined: undefinedVar", row.got)
+            assertNull(row.expected)
+        }
 
     @Test
     fun gotWantOrderIsSwapped() {
