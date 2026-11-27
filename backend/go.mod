@@ -5,6 +5,8 @@ go 1.26.5
 require (
 	entgo.io/ent v0.14.6
 	github.com/atombender/go-jsonschema v0.24.1
+	github.com/getkin/kin-openapi v0.153.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/labstack/echo/v4 v4.16.6
 	github.com/lib/pq v1.12.3
 	github.com/oapi-codegen/oapi-codegen/v2 v2.9.0
@@ -24,7 +26,6 @@ require (
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/fatih/color v1.18.0 // indirect
-	github.com/getkin/kin-openapi v0.153.0 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
 	github.com/go-openapi/jsonpointer v1.0.2 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
