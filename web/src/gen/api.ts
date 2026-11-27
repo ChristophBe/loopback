@@ -61,6 +61,19 @@ export interface components {
             xpPerLevel: number;
             dailyGoalLessons: number;
         };
+        CheckResult: components["schemas"]["check-result.schema"];
+        /** Check result */
+        "check-result.schema": {
+            passed: boolean;
+            tests: {
+                name: string;
+                /** @enum {unknown} */
+                status: "pass" | "fail" | "hint";
+                durationMs?: number;
+                expected?: string;
+                got?: string;
+            }[];
+        };
     };
     responses: never;
     parameters: never;
