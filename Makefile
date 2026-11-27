@@ -2,7 +2,7 @@
 COMPOSE := docker compose -f deploy/compose.yaml --env-file .env
 
 .PHONY: help gen check-gen lint lint-go lint-web lint-plugin lint-docs lint-specs lint-content \
-	test test-go test-web test-plugin test-content up down reset import
+	test test-go test-web test-plugin test-content replay up down reset import
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -55,6 +55,9 @@ test-plugin: ## Test the plugin
 
 test-content: ## Test the content validator
 	cd tools && pnpm install --frozen-lockfile && pnpm test
+
+replay: ## Replay the lessons' reference solutions on the templates, in order
+	cd tools && pnpm install --frozen-lockfile && node replay.mjs
 
 .env:
 	cp deploy/.env.example .env
