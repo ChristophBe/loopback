@@ -42,7 +42,9 @@ object GoTestJsonParser {
                 tests += CheckResultTestsInner(name, status, duration, expected, got)
             }
         }
-        return CheckResult(passed = tests.isNotEmpty() && tests.none { it.status == Status.fail }, tests = tests)
+        val packageFailed = events.any { it.test == null && it.action == "fail" }
+        val passed = tests.isNotEmpty() && !packageFailed && tests.none { it.status == Status.fail }
+        return CheckResult(passed = passed, tests = tests)
     }
 
     private fun parseEvent(line: String): Event? =
