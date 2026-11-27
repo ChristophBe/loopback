@@ -1,0 +1,7 @@
+   Compiling demo v0.1.0 (/work/demo)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.12s
+     Running unittests src/lib.rs (target/debug/deps/demo-c2b7b56f6115f34b)
+error: test failed, to rerun pass `--lib`
+   Doc-tests demo
+error: 1 target failed:
+    `--lib`
