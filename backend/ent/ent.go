@@ -15,7 +15,9 @@ import (
 	"github.com/ChristophBe/loopback/backend/ent/contentversion"
 	"github.com/ChristophBe/loopback/backend/ent/course"
 	"github.com/ChristophBe/loopback/backend/ent/exercise"
+	"github.com/ChristophBe/loopback/backend/ent/identity"
 	"github.com/ChristophBe/loopback/backend/ent/lesson"
+	"github.com/ChristophBe/loopback/backend/ent/session"
 	"github.com/ChristophBe/loopback/backend/ent/user"
 )
 
@@ -80,7 +82,9 @@ func checkColumn(t, c string) error {
 			contentversion.Table: contentversion.ValidColumn,
 			course.Table:         course.ValidColumn,
 			exercise.Table:       exercise.ValidColumn,
+			identity.Table:       identity.ValidColumn,
 			lesson.Table:         lesson.ValidColumn,
+			session.Table:        session.ValidColumn,
 			user.Table:           user.ValidColumn,
 		})
 	})

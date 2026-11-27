@@ -10,6 +10,8 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/ChristophBe/loopback/backend/ent/identity"
+	"github.com/ChristophBe/loopback/backend/ent/session"
 	"github.com/ChristophBe/loopback/backend/ent/user"
 )
 
@@ -38,6 +40,36 @@ func (_c *UserCreate) SetNillableCreatedAt(v *time.Time) *UserCreate {
 		_c.SetCreatedAt(*v)
 	}
 	return _c
+}
+
+// AddIdentityIDs adds the "identities" edge to the Identity entity by IDs.
+func (_c *UserCreate) AddIdentityIDs(ids ...int) *UserCreate {
+	_c.mutation.AddIdentityIDs(ids...)
+	return _c
+}
+
+// AddIdentities adds the "identities" edges to the Identity entity.
+func (_c *UserCreate) AddIdentities(v ...*Identity) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddIdentityIDs(ids...)
+}
+
+// AddSessionIDs adds the "sessions" edge to the Session entity by IDs.
+func (_c *UserCreate) AddSessionIDs(ids ...int) *UserCreate {
+	_c.mutation.AddSessionIDs(ids...)
+	return _c
+}
+
+// AddSessions adds the "sessions" edges to the Session entity.
+func (_c *UserCreate) AddSessions(v ...*Session) *UserCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSessionIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -127,6 +159,38 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(user.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
+	}
+	if nodes := _c.mutation.IdentitiesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.IdentitiesTable,
+			Columns: []string{user.IdentitiesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(identity.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SessionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.SessionsTable,
+			Columns: []string{user.SessionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(session.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

@@ -15,8 +15,14 @@ type Course func(*sql.Selector)
 // Exercise is the predicate function for exercise builders.
 type Exercise func(*sql.Selector)
 
+// Identity is the predicate function for identity builders.
+type Identity func(*sql.Selector)
+
 // Lesson is the predicate function for lesson builders.
 type Lesson func(*sql.Selector)
+
+// Session is the predicate function for session builders.
+type Session func(*sql.Selector)
 
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

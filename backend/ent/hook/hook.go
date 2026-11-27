@@ -45,6 +45,18 @@ func (f ExerciseFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, er
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ExerciseMutation", m)
 }
 
+// The IdentityFunc type is an adapter to allow the use of ordinary
+// function as Identity mutator.
+type IdentityFunc func(context.Context, *ent.IdentityMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f IdentityFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.IdentityMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IdentityMutation", m)
+}
+
 // The LessonFunc type is an adapter to allow the use of ordinary
 // function as Lesson mutator.
 type LessonFunc func(context.Context, *ent.LessonMutation) (ent.Value, error)
@@ -55,6 +67,18 @@ func (f LessonFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LessonMutation", m)
+}
+
+// The SessionFunc type is an adapter to allow the use of ordinary
+// function as Session mutator.
+type SessionFunc func(context.Context, *ent.SessionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SessionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SessionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SessionMutation", m)
 }
 
 // The UserFunc type is an adapter to allow the use of ordinary
