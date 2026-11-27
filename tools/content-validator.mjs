@@ -24,14 +24,11 @@ const exercises = {
 
 export const requiredBodySections = lessonSchema.definitions.requiredBodySections.const
 
-// Skips Cargo build output (`target/`) inside the template repos; it holds JSON that is not content.
 export function walk(dir) {
-  return readdirSync(dir)
-    .filter((name) => name !== 'target')
-    .flatMap((name) => {
-      const path = join(dir, name)
-      return statSync(path).isDirectory() ? walk(path) : [path]
-    })
+  return readdirSync(dir).flatMap((name) => {
+    const path = join(dir, name)
+    return statSync(path).isDirectory() ? walk(path) : [path]
+  })
 }
 
 // Turns an Ajv error into "<field> <message>", naming the offending field.
@@ -92,7 +89,10 @@ export function validateFile(file) {
 // Validates every content file under dir, plus the check-result fixtures.
 export function validateTree(contentDir = join(root, 'content'), fixtureDir = join(root, 'api/schemas/fixtures')) {
   const failures = []
-  const files = walk(contentDir).filter((f) => /\.(md|json)$/.test(f))
+  // template-* directories hold the learner template repos, not lessons.
+  const files = walk(contentDir)
+    .filter((f) => !relative(contentDir, f).startsWith('template-'))
+    .filter((f) => /\.(md|json)$/.test(f))
   for (const file of files) {
     for (const p of validateFile(file)) failures.push({ file: relative(root, file), ...p })
   }
