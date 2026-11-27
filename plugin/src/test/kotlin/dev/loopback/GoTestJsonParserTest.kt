@@ -61,6 +61,14 @@ class GoTestJsonParserTest {
     }
 
     @Test
+    fun packageFailureWithPassingTestsIsNotPassed() {
+        val output =
+            """{"Action":"pass","Test":"T","Elapsed":0}""" + "\n" + """{"Action":"fail","Package":"p","Elapsed":0}"""
+
+        assertFalse(GoTestJsonParser.parse(output).passed)
+    }
+
+    @Test
     fun emptyOutputIsNotPassed() {
         assertFalse(GoTestJsonParser.parse("not json\n").passed)
     }
