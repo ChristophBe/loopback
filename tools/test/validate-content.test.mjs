@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
@@ -104,4 +104,55 @@ test('solutions directories are not validated as content', () => {
   writeFileSync(join(dir, 'go/p/solutions/01/notes.md'), 'not a lesson')
   writeFileSync(join(dir, 'go/p/solutions/01/data.json'), '{}')
   assert.equal(validateTree(dir).files, 0)
+})
+
+// Writes a lesson with starter and test files into a temp content tree and returns the lesson path.
+function lessonTree(files, front = 'starterFiles: starter/01-a\ntestFiles: tests/01-a\n') {
+  const dir = mkdtempSync(join(tmpdir(), 'lesson-'))
+  const lesson = readFileSync(join(fixtures, 'valid', 'lesson.md'), 'utf8')
+  const owned = 'ownedFiles:\n  - resp/parse.go\n  - resp/parse_test.go\n'
+  writeFileSync(join(dir, '01-a.md'), lesson.replace(/ownedFiles:\n( {2}- .*\n)+/, owned + front))
+  for (const [rel, text] of Object.entries(files)) {
+    mkdirSync(join(dir, rel, '..'), { recursive: true })
+    writeFileSync(join(dir, rel), text)
+  }
+  return join(dir, '01-a.md')
+}
+
+const complete = { 'starter/01-a/resp/parse.go': 'package resp\n', 'tests/01-a/resp/parse_test.go': 'package resp\n' }
+
+test('lesson with starter and test files for every owned file is valid', () => {
+  assert.deepEqual(validateFile(lessonTree(complete)), [])
+})
+
+test('lesson without starterFiles and testFiles is valid', () => {
+  assert.deepEqual(validateFile(lessonTree({}, '')), [])
+})
+
+test('owned file missing from the starter and test directories is named', () => {
+  const problems = validateFile(lessonTree({ 'starter/01-a/resp/parse.go': 'package resp\n', 'tests/01-a/resp/other.txt': 'x' }))
+  assert.deepEqual(problems, [
+    { field: 'testFiles', message: 'file "resp/other.txt" in "tests/01-a" is not listed in ownedFiles' },
+    { field: 'ownedFiles', message: 'file "resp/parse_test.go" is missing from the starterFiles and testFiles directories' },
+  ])
+})
+
+test('missing directory is reported on its field', () => {
+  const problems = validateFile(lessonTree({ 'starter/01-a/resp/parse.go': 'x', 'starter/01-a/resp/parse_test.go': 'x' }))
+  assert.deepEqual(problems.map((p) => p.field), ['testFiles'])
+})
+
+test('starterFiles with an unsafe path is rejected on that field', () => {
+  const problems = validateFile(lessonTree(complete, 'starterFiles: ../starter\ntestFiles: tests/01-a\n'))
+  assert.deepEqual(problems.map((p) => p.field), ['starterFiles'])
+})
+
+test('starter and tests directories are not walked for lessons', () => {
+  const lesson = lessonTree({ ...complete, 'starter/01-a/resp/notes.md': 'no front matter', 'tests/01-a/resp/data.json': '{' })
+  const contentDir = mkdtempSync(join(tmpdir(), 'tree-'))
+  const project = join(contentDir, 'go', 'p')
+  mkdirSync(project, { recursive: true })
+  for (const name of ['starter', 'tests']) cpSync(join(lesson, '..', name), join(project, name), { recursive: true })
+  const { files } = validateTree(contentDir)
+  assert.equal(files, 0)
 })
