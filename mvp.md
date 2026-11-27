@@ -37,6 +37,19 @@ The MVP tests the core idea from [goal.md](goal.md): a daily 5-minute lesson in 
 | Gamification engine | XP, levels, streaks and the daily goal. Runs in the backend so both clients show the same state |
 | Mobile web app | Login, quizzes and flashcards, bad-code review exercises, progress view |
 
+How the components fit together, the API and the spec-driven code generation are described in [architecture.md](architecture.md).
+
+## Design
+
+The product is branded **loopback**. The look is minimalist, terminal-first and technical, and it should blend in with modern IDEs instead of looking like a game. The rules and tokens are in [brand/](brand/README.md).
+
+- **Shared by both clients:** the JetBrains plugin and the mobile web app use the same tokens (`brand/tokens.json`), so they look the same.
+- **Themes:** dark and light. The plugin follows the IDE theme and the web app follows the system setting.
+- **Type:** JetBrains Mono for all text.
+- **Color:** IDE-grey neutrals and one muted steel-blue accent. Check results use a glyph and a word as well as color: `✓ pass`, `✗ fail`, `! hint`.
+- **Components needed for the MVP:** button, prompt input, lesson card, check result, XP bar and code block with a flagged line for bad-code reviews.
+- **Gamification tone:** XP, level and streak are shown as plain numbers and a thin bar. There are no mascots, no confetti and no emoji.
+
 ## Core flow
 
 1. The learner signs in and picks Rust or Go.
@@ -65,7 +78,11 @@ The MVP tests the core idea from [goal.md](goal.md): a daily 5-minute lesson in 
 
 ## Decisions
 
-- **Backend:** Go.
+- **Backend:** Go with the Echo router, ent as ORM on PostgreSQL, and logrus for logging.
+- **Specs first:** the API, content schemas and database schema are specs, and code is generated from them (see [architecture.md](architecture.md)).
+- **Accounts:** OAuth providers and email magic link. The plugin signs in through the device-code flow.
+- **Web app:** React and Vite single-page app.
+- **Content delivery:** the backend imports the content repo and serves lessons through the REST API to the plugin and the web app.
 - **Project setup:** the plugin copies a template repo locally, then each lesson adds its starter code and tests to it.
 - **Checks:** run locally on the learner's machine with their installed Go or Rust toolchain. This matches the goal of learning the real tools and needs no sandbox. Results are not verified server-side, so XP can be gamed. That is acceptable for the MVP.
 - **Authoring:** lessons are files in the repo, Markdown with YAML metadata, reviewed through pull requests.
