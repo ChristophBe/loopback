@@ -153,6 +153,30 @@ func (_u *LessonUpdate) ClearOwnedFiles() *LessonUpdate {
 	return _u
 }
 
+// SetStarterFiles sets the "starter_files" field.
+func (_u *LessonUpdate) SetStarterFiles(v map[string]string) *LessonUpdate {
+	_u.mutation.SetStarterFiles(v)
+	return _u
+}
+
+// ClearStarterFiles clears the value of the "starter_files" field.
+func (_u *LessonUpdate) ClearStarterFiles() *LessonUpdate {
+	_u.mutation.ClearStarterFiles()
+	return _u
+}
+
+// SetTestFiles sets the "test_files" field.
+func (_u *LessonUpdate) SetTestFiles(v map[string]string) *LessonUpdate {
+	_u.mutation.SetTestFiles(v)
+	return _u
+}
+
+// ClearTestFiles clears the value of the "test_files" field.
+func (_u *LessonUpdate) ClearTestFiles() *LessonUpdate {
+	_u.mutation.ClearTestFiles()
+	return _u
+}
+
 // SetHints sets the "hints" field.
 func (_u *LessonUpdate) SetHints(v []string) *LessonUpdate {
 	_u.mutation.SetHints(v)
@@ -339,6 +363,18 @@ func (_u *LessonUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.OwnedFilesCleared() {
 		_spec.ClearField(lesson.FieldOwnedFiles, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.StarterFiles(); ok {
+		_spec.SetField(lesson.FieldStarterFiles, field.TypeJSON, value)
+	}
+	if _u.mutation.StarterFilesCleared() {
+		_spec.ClearField(lesson.FieldStarterFiles, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TestFiles(); ok {
+		_spec.SetField(lesson.FieldTestFiles, field.TypeJSON, value)
+	}
+	if _u.mutation.TestFilesCleared() {
+		_spec.ClearField(lesson.FieldTestFiles, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Hints(); ok {
 		_spec.SetField(lesson.FieldHints, field.TypeJSON, value)
@@ -558,6 +594,30 @@ func (_u *LessonUpdateOne) ClearOwnedFiles() *LessonUpdateOne {
 	return _u
 }
 
+// SetStarterFiles sets the "starter_files" field.
+func (_u *LessonUpdateOne) SetStarterFiles(v map[string]string) *LessonUpdateOne {
+	_u.mutation.SetStarterFiles(v)
+	return _u
+}
+
+// ClearStarterFiles clears the value of the "starter_files" field.
+func (_u *LessonUpdateOne) ClearStarterFiles() *LessonUpdateOne {
+	_u.mutation.ClearStarterFiles()
+	return _u
+}
+
+// SetTestFiles sets the "test_files" field.
+func (_u *LessonUpdateOne) SetTestFiles(v map[string]string) *LessonUpdateOne {
+	_u.mutation.SetTestFiles(v)
+	return _u
+}
+
+// ClearTestFiles clears the value of the "test_files" field.
+func (_u *LessonUpdateOne) ClearTestFiles() *LessonUpdateOne {
+	_u.mutation.ClearTestFiles()
+	return _u
+}
+
 // SetHints sets the "hints" field.
 func (_u *LessonUpdateOne) SetHints(v []string) *LessonUpdateOne {
 	_u.mutation.SetHints(v)
@@ -774,6 +834,18 @@ func (_u *LessonUpdateOne) sqlSave(ctx context.Context) (_node *Lesson, err erro
 	}
 	if _u.mutation.OwnedFilesCleared() {
 		_spec.ClearField(lesson.FieldOwnedFiles, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.StarterFiles(); ok {
+		_spec.SetField(lesson.FieldStarterFiles, field.TypeJSON, value)
+	}
+	if _u.mutation.StarterFilesCleared() {
+		_spec.ClearField(lesson.FieldStarterFiles, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.TestFiles(); ok {
+		_spec.SetField(lesson.FieldTestFiles, field.TypeJSON, value)
+	}
+	if _u.mutation.TestFilesCleared() {
+		_spec.ClearField(lesson.FieldTestFiles, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Hints(); ok {
 		_spec.SetField(lesson.FieldHints, field.TypeJSON, value)

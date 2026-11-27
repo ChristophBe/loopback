@@ -23,6 +23,11 @@ func (Lesson) Fields() []ent.Field {
 		field.Int("xp").Positive(),
 		field.Text("body").Default(""),
 		field.JSON("owned_files", []string{}).Optional(),
+		// starter_files and test_files map a path relative to the learner's
+		// project to the file content, as read from the lesson's starterFiles
+		// and testFiles directories.
+		field.JSON("starter_files", map[string]string{}).Optional(),
+		field.JSON("test_files", map[string]string{}).Optional(),
 		field.JSON("hints", []string{}).Optional(),
 		field.JSON("failure_explanations", map[string]string{}).Optional(),
 	}

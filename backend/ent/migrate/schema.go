@@ -116,6 +116,8 @@ var (
 		{Name: "xp", Type: field.TypeInt},
 		{Name: "body", Type: field.TypeString, Size: 2147483647, Default: ""},
 		{Name: "owned_files", Type: field.TypeJSON, Nullable: true},
+		{Name: "starter_files", Type: field.TypeJSON, Nullable: true},
+		{Name: "test_files", Type: field.TypeJSON, Nullable: true},
 		{Name: "hints", Type: field.TypeJSON, Nullable: true},
 		{Name: "failure_explanations", Type: field.TypeJSON, Nullable: true},
 		{Name: "content_version_lessons", Type: field.TypeInt, Nullable: true},
@@ -129,13 +131,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "lessons_content_versions_lessons",
-				Columns:    []*schema.Column{LessonsColumns[10]},
+				Columns:    []*schema.Column{LessonsColumns[12]},
 				RefColumns: []*schema.Column{ContentVersionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "lessons_courses_lessons",
-				Columns:    []*schema.Column{LessonsColumns[11]},
+				Columns:    []*schema.Column{LessonsColumns[13]},
 				RefColumns: []*schema.Column{CoursesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -144,12 +146,12 @@ var (
 			{
 				Name:    "lesson_slug_course_lessons",
 				Unique:  true,
-				Columns: []*schema.Column{LessonsColumns[1], LessonsColumns[11]},
+				Columns: []*schema.Column{LessonsColumns[1], LessonsColumns[13]},
 			},
 			{
 				Name:    "lesson_order_course_lessons",
 				Unique:  true,
-				Columns: []*schema.Column{LessonsColumns[2], LessonsColumns[11]},
+				Columns: []*schema.Column{LessonsColumns[2], LessonsColumns[13]},
 			},
 		},
 	}
