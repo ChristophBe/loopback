@@ -1,0 +1,7 @@
+{
+  "passed": false,
+  "tests": [
+    { "name": "tests::adds_two_numbers", "status": "pass", "durationMs": 0 },
+    { "name": "tests::adds_negative_numbers", "status": "fail", "durationMs": 0, "expected": "-2", "got": "-3" }
+  ]
+}
