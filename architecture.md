@@ -65,6 +65,10 @@ A modular monolith in Go. Echo is the router, with middleware for auth, request 
 | progress | Lesson completions and quiz or review attempts per learner. |
 | gamification | An append-only `xp_events` ledger. Level, streak and daily goal are derived from it, with the streak computed in the learner's time zone. One engine serves both clients, so their state matches. |
 
+### Auth tokens
+
+Access tokens are HS256 JWTs (`sub` is the user id, issuer `loopback`) signed with `JWT_SECRET`. The API refuses to start when the secret is unset or shorter than 32 bytes. `JWT_ACCESS_TTL` sets the access-token lifetime (default `15m`). A refresh token is 32 random bytes; only its SHA-256 is stored in `Session.token_hash`, and `REFRESH_TOKEN_TTL` (default `720h`) sets its lifetime. `POST /auth/refresh` revokes the presented session and creates a new one, so each refresh token works once and a revoked or expired token is rejected with `invalid_grant`. The auth middleware reads the security requirements from the embedded OpenAPI spec: every operation without `security: []` needs a valid `Authorization: Bearer` access token, otherwise the API answers `401` with the `Error` schema. Handlers read the user with `auth.UserID(ctx)`.
+
 ### Data model
 
 ent entities with edges (for example `User` has many `Completion` and `XpEvent`):

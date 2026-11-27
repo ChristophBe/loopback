@@ -24,6 +24,10 @@ services:
       API_ADDR: ":8080"
       GAMIFICATION_FILE: /src/api/gamification.yaml
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+      # Development default; set a random value of at least 32 bytes elsewhere.
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-do-not-use-in-prod}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-720h}
     ports: ["8080:8080"]
     volumes:
       - ../backend:/src/backend
