@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, readdirSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
@@ -89,4 +89,11 @@ test('doc examples that are invalid or missing are reported', () => {
 test('lesson with a malformed referenceSolution is rejected on that field', () => {
   const problems = validateFile(join(fixtures, 'invalid', 'lesson-bad-reference-solution.md'))
   assert.deepEqual(problems.map((p) => p.field), ['referenceSolution'])
+})
+
+test('referenceSolution accepts relative directories and rejects unsafe paths', () => {
+  const schema = JSON.parse(readFileSync(join(root, 'api/schemas/lesson.schema.json'), 'utf8'))
+  const re = new RegExp(schema.properties.referenceSolution.pattern)
+  for (const ok of ['solutions/01-a', 'solutions', 'a.b/c_d']) assert.ok(re.test(ok), ok)
+  for (const bad of ['', '.', './x', 'a/./b', '..', 'a/..', 'a/../b', '/abs', 'a/', 'a//b', 'a\\b']) assert.ok(!re.test(bad), bad)
 })
