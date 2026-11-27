@@ -71,6 +71,18 @@ func (_c *LessonCreate) SetOwnedFiles(v []string) *LessonCreate {
 	return _c
 }
 
+// SetStarterFiles sets the "starter_files" field.
+func (_c *LessonCreate) SetStarterFiles(v map[string]string) *LessonCreate {
+	_c.mutation.SetStarterFiles(v)
+	return _c
+}
+
+// SetTestFiles sets the "test_files" field.
+func (_c *LessonCreate) SetTestFiles(v map[string]string) *LessonCreate {
+	_c.mutation.SetTestFiles(v)
+	return _c
+}
+
 // SetHints sets the "hints" field.
 func (_c *LessonCreate) SetHints(v []string) *LessonCreate {
 	_c.mutation.SetHints(v)
@@ -255,6 +267,14 @@ func (_c *LessonCreate) createSpec() (*Lesson, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.OwnedFiles(); ok {
 		_spec.SetField(lesson.FieldOwnedFiles, field.TypeJSON, value)
 		_node.OwnedFiles = value
+	}
+	if value, ok := _c.mutation.StarterFiles(); ok {
+		_spec.SetField(lesson.FieldStarterFiles, field.TypeJSON, value)
+		_node.StarterFiles = value
+	}
+	if value, ok := _c.mutation.TestFiles(); ok {
+		_spec.SetField(lesson.FieldTestFiles, field.TypeJSON, value)
+		_node.TestFiles = value
 	}
 	if value, ok := _c.mutation.Hints(); ok {
 		_spec.SetField(lesson.FieldHints, field.TypeJSON, value)

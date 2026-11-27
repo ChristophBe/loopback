@@ -408,6 +408,26 @@ func OwnedFilesNotNil() predicate.Lesson {
 	return predicate.Lesson(sql.FieldNotNull(FieldOwnedFiles))
 }
 
+// StarterFilesIsNil applies the IsNil predicate on the "starter_files" field.
+func StarterFilesIsNil() predicate.Lesson {
+	return predicate.Lesson(sql.FieldIsNull(FieldStarterFiles))
+}
+
+// StarterFilesNotNil applies the NotNil predicate on the "starter_files" field.
+func StarterFilesNotNil() predicate.Lesson {
+	return predicate.Lesson(sql.FieldNotNull(FieldStarterFiles))
+}
+
+// TestFilesIsNil applies the IsNil predicate on the "test_files" field.
+func TestFilesIsNil() predicate.Lesson {
+	return predicate.Lesson(sql.FieldIsNull(FieldTestFiles))
+}
+
+// TestFilesNotNil applies the NotNil predicate on the "test_files" field.
+func TestFilesNotNil() predicate.Lesson {
+	return predicate.Lesson(sql.FieldNotNull(FieldTestFiles))
+}
+
 // HintsIsNil applies the IsNil predicate on the "hints" field.
 func HintsIsNil() predicate.Lesson {
 	return predicate.Lesson(sql.FieldIsNull(FieldHints))

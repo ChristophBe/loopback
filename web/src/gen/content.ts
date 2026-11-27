@@ -15,6 +15,14 @@ export interface LessonFrontMatter {
    */
   referenceSolution?: string;
   /**
+   * Directory of the starter files the plugin writes into the learner's project, relative to the directory of the lesson file, with the same path rules as referenceSolution. By convention it is starter/<lesson file name without extension>, for example starter/01-parse-simple-string next to 01-parse-simple-string.md. The directory holds files at the same relative path as entries in ownedFiles and nothing else. Together with the other directory it must cover every entry in ownedFiles. The importer stores the files and the API serves them to the plugin.
+   */
+  starterFiles?: string;
+  /**
+   * Directory of the test files the plugin writes into the learner's project, relative to the directory of the lesson file, with the same path rules as referenceSolution. By convention it is tests/<lesson file name without extension>, for example tests/01-parse-simple-string next to 01-parse-simple-string.md. The directory holds files at the same relative path as entries in ownedFiles and nothing else. Together with the other directory it must cover every entry in ownedFiles. The importer stores the files and the API serves them to the plugin.
+   */
+  testFiles?: string;
+  /**
    * Ordered hints, revealed one at a time, from nudge to near-solution.
    */
   hints?: string[];

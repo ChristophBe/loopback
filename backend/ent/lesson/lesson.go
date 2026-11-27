@@ -26,6 +26,10 @@ const (
 	FieldBody = "body"
 	// FieldOwnedFiles holds the string denoting the owned_files field in the database.
 	FieldOwnedFiles = "owned_files"
+	// FieldStarterFiles holds the string denoting the starter_files field in the database.
+	FieldStarterFiles = "starter_files"
+	// FieldTestFiles holds the string denoting the test_files field in the database.
+	FieldTestFiles = "test_files"
 	// FieldHints holds the string denoting the hints field in the database.
 	FieldHints = "hints"
 	// FieldFailureExplanations holds the string denoting the failure_explanations field in the database.
@@ -62,6 +66,8 @@ var Columns = []string{
 	FieldXp,
 	FieldBody,
 	FieldOwnedFiles,
+	FieldStarterFiles,
+	FieldTestFiles,
 	FieldHints,
 	FieldFailureExplanations,
 }

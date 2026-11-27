@@ -33,6 +33,10 @@ type Lesson struct {
 	Body string `json:"body,omitempty"`
 	// OwnedFiles holds the value of the "owned_files" field.
 	OwnedFiles []string `json:"owned_files,omitempty"`
+	// StarterFiles holds the value of the "starter_files" field.
+	StarterFiles map[string]string `json:"starter_files,omitempty"`
+	// TestFiles holds the value of the "test_files" field.
+	TestFiles map[string]string `json:"test_files,omitempty"`
 	// Hints holds the value of the "hints" field.
 	Hints []string `json:"hints,omitempty"`
 	// FailureExplanations holds the value of the "failure_explanations" field.
@@ -83,7 +87,7 @@ func (*Lesson) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case lesson.FieldOwnedFiles, lesson.FieldHints, lesson.FieldFailureExplanations:
+		case lesson.FieldOwnedFiles, lesson.FieldStarterFiles, lesson.FieldTestFiles, lesson.FieldHints, lesson.FieldFailureExplanations:
 			values[i] = new([]byte)
 		case lesson.FieldID, lesson.FieldOrder, lesson.FieldMinutes, lesson.FieldXp:
 			values[i] = new(sql.NullInt64)
@@ -156,6 +160,22 @@ func (_m *Lesson) assignValues(columns []string, values []any) error {
 			} else if value != nil && len(*value) > 0 {
 				if err := json.Unmarshal(*value, &_m.OwnedFiles); err != nil {
 					return fmt.Errorf("unmarshal field owned_files: %w", err)
+				}
+			}
+		case lesson.FieldStarterFiles:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field starter_files", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.StarterFiles); err != nil {
+					return fmt.Errorf("unmarshal field starter_files: %w", err)
+				}
+			}
+		case lesson.FieldTestFiles:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field test_files", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.TestFiles); err != nil {
+					return fmt.Errorf("unmarshal field test_files: %w", err)
 				}
 			}
 		case lesson.FieldHints:
@@ -254,6 +274,12 @@ func (_m *Lesson) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("owned_files=")
 	builder.WriteString(fmt.Sprintf("%v", _m.OwnedFiles))
+	builder.WriteString(", ")
+	builder.WriteString("starter_files=")
+	builder.WriteString(fmt.Sprintf("%v", _m.StarterFiles))
+	builder.WriteString(", ")
+	builder.WriteString("test_files=")
+	builder.WriteString(fmt.Sprintf("%v", _m.TestFiles))
 	builder.WriteString(", ")
 	builder.WriteString("hints=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Hints))

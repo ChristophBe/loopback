@@ -100,6 +100,26 @@ type LessonSchemaJson struct {
 	// tests pass.
 	ReferenceSolution *string `json:"referenceSolution,omitempty,omitzero" yaml:"referenceSolution,omitempty" mapstructure:"referenceSolution,omitempty"`
 
+	// Directory of the starter files the plugin writes into the learner's project,
+	// relative to the directory of the lesson file, with the same path rules as
+	// referenceSolution. By convention it is starter/<lesson file name without
+	// extension>, for example starter/01-parse-simple-string next to
+	// 01-parse-simple-string.md. The directory holds files at the same relative path
+	// as entries in ownedFiles and nothing else. Together with the other directory it
+	// must cover every entry in ownedFiles. The importer stores the files and the API
+	// serves them to the plugin.
+	StarterFiles *string `json:"starterFiles,omitempty,omitzero" yaml:"starterFiles,omitempty" mapstructure:"starterFiles,omitempty"`
+
+	// Directory of the test files the plugin writes into the learner's project,
+	// relative to the directory of the lesson file, with the same path rules as
+	// referenceSolution. By convention it is tests/<lesson file name without
+	// extension>, for example tests/01-parse-simple-string next to
+	// 01-parse-simple-string.md. The directory holds files at the same relative path
+	// as entries in ownedFiles and nothing else. Together with the other directory it
+	// must cover every entry in ownedFiles. The importer stores the files and the API
+	// serves them to the plugin.
+	TestFiles *string `json:"testFiles,omitempty,omitzero" yaml:"testFiles,omitempty" mapstructure:"testFiles,omitempty"`
+
 	// Title corresponds to the JSON schema field "title".
 	Title string `json:"title" yaml:"title" mapstructure:"title"`
 

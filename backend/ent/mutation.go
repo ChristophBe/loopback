@@ -2337,6 +2337,8 @@ type LessonMutation struct {
 	body                   *string
 	owned_files            *[]string
 	appendowned_files      []string
+	starter_files          *map[string]string
+	test_files             *map[string]string
 	hints                  *[]string
 	appendhints            []string
 	failure_explanations   *map[string]string
@@ -2789,6 +2791,104 @@ func (m *LessonMutation) ResetOwnedFiles() {
 	delete(m.clearedFields, lesson.FieldOwnedFiles)
 }
 
+// SetStarterFiles sets the "starter_files" field.
+func (m *LessonMutation) SetStarterFiles(value map[string]string) {
+	m.starter_files = &value
+}
+
+// StarterFiles returns the value of the "starter_files" field in the mutation.
+func (m *LessonMutation) StarterFiles() (r map[string]string, exists bool) {
+	v := m.starter_files
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStarterFiles returns the old "starter_files" field's value of the Lesson entity.
+// If the Lesson object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LessonMutation) OldStarterFiles(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStarterFiles is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStarterFiles requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStarterFiles: %w", err)
+	}
+	return oldValue.StarterFiles, nil
+}
+
+// ClearStarterFiles clears the value of the "starter_files" field.
+func (m *LessonMutation) ClearStarterFiles() {
+	m.starter_files = nil
+	m.clearedFields[lesson.FieldStarterFiles] = struct{}{}
+}
+
+// StarterFilesCleared returns if the "starter_files" field was cleared in this mutation.
+func (m *LessonMutation) StarterFilesCleared() bool {
+	_, ok := m.clearedFields[lesson.FieldStarterFiles]
+	return ok
+}
+
+// ResetStarterFiles resets all changes to the "starter_files" field.
+func (m *LessonMutation) ResetStarterFiles() {
+	m.starter_files = nil
+	delete(m.clearedFields, lesson.FieldStarterFiles)
+}
+
+// SetTestFiles sets the "test_files" field.
+func (m *LessonMutation) SetTestFiles(value map[string]string) {
+	m.test_files = &value
+}
+
+// TestFiles returns the value of the "test_files" field in the mutation.
+func (m *LessonMutation) TestFiles() (r map[string]string, exists bool) {
+	v := m.test_files
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTestFiles returns the old "test_files" field's value of the Lesson entity.
+// If the Lesson object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LessonMutation) OldTestFiles(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTestFiles is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTestFiles requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTestFiles: %w", err)
+	}
+	return oldValue.TestFiles, nil
+}
+
+// ClearTestFiles clears the value of the "test_files" field.
+func (m *LessonMutation) ClearTestFiles() {
+	m.test_files = nil
+	m.clearedFields[lesson.FieldTestFiles] = struct{}{}
+}
+
+// TestFilesCleared returns if the "test_files" field was cleared in this mutation.
+func (m *LessonMutation) TestFilesCleared() bool {
+	_, ok := m.clearedFields[lesson.FieldTestFiles]
+	return ok
+}
+
+// ResetTestFiles resets all changes to the "test_files" field.
+func (m *LessonMutation) ResetTestFiles() {
+	m.test_files = nil
+	delete(m.clearedFields, lesson.FieldTestFiles)
+}
+
 // SetHints sets the "hints" field.
 func (m *LessonMutation) SetHints(s []string) {
 	m.hints = &s
@@ -3015,7 +3115,7 @@ func (m *LessonMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LessonMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 11)
 	if m.slug != nil {
 		fields = append(fields, lesson.FieldSlug)
 	}
@@ -3036,6 +3136,12 @@ func (m *LessonMutation) Fields() []string {
 	}
 	if m.owned_files != nil {
 		fields = append(fields, lesson.FieldOwnedFiles)
+	}
+	if m.starter_files != nil {
+		fields = append(fields, lesson.FieldStarterFiles)
+	}
+	if m.test_files != nil {
+		fields = append(fields, lesson.FieldTestFiles)
 	}
 	if m.hints != nil {
 		fields = append(fields, lesson.FieldHints)
@@ -3065,6 +3171,10 @@ func (m *LessonMutation) Field(name string) (ent.Value, bool) {
 		return m.Body()
 	case lesson.FieldOwnedFiles:
 		return m.OwnedFiles()
+	case lesson.FieldStarterFiles:
+		return m.StarterFiles()
+	case lesson.FieldTestFiles:
+		return m.TestFiles()
 	case lesson.FieldHints:
 		return m.Hints()
 	case lesson.FieldFailureExplanations:
@@ -3092,6 +3202,10 @@ func (m *LessonMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldBody(ctx)
 	case lesson.FieldOwnedFiles:
 		return m.OldOwnedFiles(ctx)
+	case lesson.FieldStarterFiles:
+		return m.OldStarterFiles(ctx)
+	case lesson.FieldTestFiles:
+		return m.OldTestFiles(ctx)
 	case lesson.FieldHints:
 		return m.OldHints(ctx)
 	case lesson.FieldFailureExplanations:
@@ -3153,6 +3267,20 @@ func (m *LessonMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetOwnedFiles(v)
+		return nil
+	case lesson.FieldStarterFiles:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStarterFiles(v)
+		return nil
+	case lesson.FieldTestFiles:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTestFiles(v)
 		return nil
 	case lesson.FieldHints:
 		v, ok := value.([]string)
@@ -3240,6 +3368,12 @@ func (m *LessonMutation) ClearedFields() []string {
 	if m.FieldCleared(lesson.FieldOwnedFiles) {
 		fields = append(fields, lesson.FieldOwnedFiles)
 	}
+	if m.FieldCleared(lesson.FieldStarterFiles) {
+		fields = append(fields, lesson.FieldStarterFiles)
+	}
+	if m.FieldCleared(lesson.FieldTestFiles) {
+		fields = append(fields, lesson.FieldTestFiles)
+	}
 	if m.FieldCleared(lesson.FieldHints) {
 		fields = append(fields, lesson.FieldHints)
 	}
@@ -3262,6 +3396,12 @@ func (m *LessonMutation) ClearField(name string) error {
 	switch name {
 	case lesson.FieldOwnedFiles:
 		m.ClearOwnedFiles()
+		return nil
+	case lesson.FieldStarterFiles:
+		m.ClearStarterFiles()
+		return nil
+	case lesson.FieldTestFiles:
+		m.ClearTestFiles()
 		return nil
 	case lesson.FieldHints:
 		m.ClearHints()
@@ -3297,6 +3437,12 @@ func (m *LessonMutation) ResetField(name string) error {
 		return nil
 	case lesson.FieldOwnedFiles:
 		m.ResetOwnedFiles()
+		return nil
+	case lesson.FieldStarterFiles:
+		m.ResetStarterFiles()
+		return nil
+	case lesson.FieldTestFiles:
+		m.ResetTestFiles()
 		return nil
 	case lesson.FieldHints:
 		m.ResetHints()
