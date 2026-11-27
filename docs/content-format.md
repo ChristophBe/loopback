@@ -35,10 +35,32 @@ Front matter fields, besides the shared ones. All of them are required unless ma
 | `minutes` | integer, 1 to 15 | Estimated time. A lesson that takes longer must be split. |
 | `xp` | integer, 1 or more | XP awarded on completion. |
 | `ownedFiles` | list of strings | Paths in the learner's project that the lesson edits and the plugin may overwrite. No duplicates. |
+| `starterFiles` | string, optional | Directory with the starter files, relative to the lesson file, by convention `starter/<lesson file name without extension>`. See [Starter and test files](#starter-and-test-files). |
+| `testFiles` | string, optional | Directory with the test files, relative to the lesson file, by convention `tests/<lesson file name without extension>`. See [Starter and test files](#starter-and-test-files). |
 | `hints` | list of strings, optional | Revealed one at a time, from nudge to near-solution. |
 | `failureExplanations` | map, optional | Maps a test name to the explanation shown when that test fails. |
 
 The body must contain the level-2 headings `## Objective` and `## Instructions`, in this order. Headings inside fenced code blocks do not count. Other sections may follow.
+
+### Starter and test files
+
+The plugin writes the starter code and the tests of a lesson into the learner's project, so the importer stores them with the lesson. `starterFiles` and `testFiles` name one directory each, relative to the directory of the lesson file, with no leading or trailing slash and no `.` or `..` segment. By convention they are `starter/<name>` and `tests/<name>`, where `<name>` is the lesson file name without extension. For `01-parse-simple-string.md` that is:
+
+```text
+content/go/redis-server/
+  01-parse-simple-string.md
+  starter/01-parse-simple-string/resp/parse.go
+  tests/01-parse-simple-string/resp/parse_test.go
+```
+
+The files sit at the same relative path as in `ownedFiles`. Rules, checked by `make lint-content` and by the importer:
+
+- Every entry in `ownedFiles` must be in `starterFiles`, `testFiles` or both. Put the file the learner edits (the stub) in the starter directory and the file that checks the work (the tests) in the test directory.
+- A directory holds only files listed in `ownedFiles`. Any other file fails the check, naming the lesson and the path.
+- A declared directory must exist. Files must be UTF-8 text and regular files, no symbolic links.
+- Both fields are optional. Without them nothing is checked or stored.
+
+`starter/`, `tests/` and `solutions/` next to the lessons are not scanned for lessons or exercises.
 
 <!-- example: lesson -->
 ````markdown
@@ -54,6 +76,8 @@ xp: 50
 ownedFiles:
   - resp/parse.go
   - resp/parse_test.go
+starterFiles: starter/01-parse-simple-string
+testFiles: tests/01-parse-simple-string
 hints:
   - A simple string starts with `+` and ends with `\r\n`.
   - Strip the prefix and the trailing `\r\n`, then return what is left.

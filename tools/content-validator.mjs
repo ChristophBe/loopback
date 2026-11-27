@@ -2,7 +2,7 @@
 // Lessons are Markdown files with YAML front matter. Quizzes, flashcards and reviews
 // are JSON files. The "type" field selects the schema for a JSON file.
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { dirname, join, relative, sep } from 'node:path'
 
 import Ajv from 'ajv'
 import matter from 'gray-matter'
@@ -66,16 +66,49 @@ function bodyProblems(body) {
   return problems
 }
 
-// Returns [{ field, message }] for one content file. An empty array means valid.
-export function validateFile(file) {
-  return validateText(readFileSync(file, 'utf8'), file.endsWith('.md'))
+// Directories next to a lesson that hold files of the lesson, not lessons or exercises.
+const lessonFileDirs = ['solutions', 'starter', 'tests']
+
+// Checks the starterFiles and testFiles directories of a lesson in lessonDir: each holds only
+// files listed in ownedFiles, and every ownedFiles entry is in one of them.
+function lessonFileProblems(data, lessonDir) {
+  const dirs = [['starterFiles', data.starterFiles], ['testFiles', data.testFiles]].filter(([, d]) => typeof d === 'string')
+  if (!dirs.length || !Array.isArray(data.ownedFiles)) return []
+  const problems = []
+  const present = new Set()
+  for (const [field, dir] of dirs) {
+    const root = join(lessonDir, dir)
+    let files
+    try {
+      files = walk(root).map((f) => relative(root, f).split(sep).join('/'))
+    } catch {
+      problems.push({ field, message: `directory "${dir}" does not exist` })
+      continue
+    }
+    for (const f of files) {
+      if (data.ownedFiles.includes(f)) present.add(f)
+      else problems.push({ field, message: `file "${f}" in "${dir}" is not listed in ownedFiles` })
+    }
+  }
+  const where = dirs.length === 2 ? 'starterFiles and testFiles directories' : `${dirs[0][0]} directory`
+  for (const f of data.ownedFiles) {
+    if (!present.has(f)) problems.push({ field: 'ownedFiles', message: `file "${f}" is missing from the ${where}` })
+  }
+  return problems
 }
 
-// Validates the text of a lesson (markdown) or of a JSON exercise.
-export function validateText(text, markdown) {
+// Returns [{ field, message }] for one content file. An empty array means valid.
+export function validateFile(file) {
+  return validateText(readFileSync(file, 'utf8'), file.endsWith('.md'), dirname(file))
+}
+
+// Validates the text of a lesson (markdown) or of a JSON exercise. The starter and test
+// directories of a lesson are only checked when lessonDir, the directory of the lesson file, is given.
+export function validateText(text, markdown, lessonDir) {
   if (markdown) {
     const { data, content } = matter(text)
-    return [...schemaProblems(lesson, data), ...bodyProblems(content)]
+    const problems = [...schemaProblems(lesson, data), ...bodyProblems(content)]
+    return problems.length || !lessonDir ? problems : lessonFileProblems(data, lessonDir)
   }
   let data
   try {
@@ -90,10 +123,11 @@ export function validateText(text, markdown) {
   return schemaProblems(validate, data)
 }
 
-// template-* directories hold the learner template repos and solutions directories the reference solutions, not content.
+// template-* directories hold the learner template repos. The directories in lessonFileDirs hold the files of
+// lessons (reference solutions, starter code and tests), not content.
 export const isContentPath = (contentDir, file) => {
-  const segments = relative(contentDir, file).split('/')
-  return !segments[0].startsWith('template-') && !segments.includes('solutions')
+  const segments = relative(contentDir, file).split(sep)
+  return !segments[0].startsWith('template-') && !segments.includes('solutions') && !lessonFileDirs.includes(segments[2])
 }
 
 // Validates every content file under dir, plus the check-result fixtures.
