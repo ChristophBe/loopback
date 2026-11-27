@@ -2,7 +2,7 @@
 COMPOSE := docker compose -f deploy/compose.yaml --env-file .env
 
 .PHONY: help gen check-gen lint lint-go lint-web lint-plugin lint-docs lint-specs lint-content \
-	test test-go test-web test-plugin test-content replay up down reset import
+	test test-go test-web test-plugin test-content replay record-fixtures up down reset import
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -58,6 +58,9 @@ test-content: ## Test the content validator
 
 replay: ## Replay the lessons' reference solutions on the templates, in order
 	cd tools && pnpm install --frozen-lockfile && node replay.mjs
+
+record-fixtures: ## Re-record the go test and cargo test fixtures with Docker
+	api/schemas/fixtures/record.sh
 
 .env:
 	cp deploy/.env.example .env

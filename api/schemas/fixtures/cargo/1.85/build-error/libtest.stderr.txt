@@ -1,0 +1,16 @@
+error[E0277]: cannot add `&str` to `i32`
+ --> src/lib.rs:2:7
+  |
+2 |     a + "b"
+  |       ^ no implementation for `i32 + &str`
+  |
+  = help: the trait `Add<&str>` is not implemented for `i32`
+  = help: the following other types implement trait `Add<Rhs>`:
+            `&i32` implements `Add<i32>`
+            `&i32` implements `Add`
+            `i32` implements `Add<&i32>`
+            `i32` implements `Add`
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `demo` (lib) due to 1 previous error
+error: could not compile `demo` (lib test) due to 1 previous error
