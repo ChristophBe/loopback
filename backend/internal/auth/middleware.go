@@ -57,12 +57,27 @@ func securedRoutes(spec *openapi3.T, basePath string) map[string]bool {
 			if op.Security != nil {
 				requirements = *op.Security
 			}
-			if len(requirements) > 0 {
+			if mandatory(requirements) {
 				secured[method+" "+route] = true
 			}
 		}
 	}
 	return secured
+}
+
+// mandatory reports whether every alternative needs credentials. An empty
+// requirement object means anonymous access is allowed. The spec has a single
+// scheme, bearerAuth, so the scheme name is not inspected.
+func mandatory(requirements openapi3.SecurityRequirements) bool {
+	if len(requirements) == 0 {
+		return false
+	}
+	for _, r := range requirements {
+		if len(r) == 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func bearerToken(header string) (string, bool) {
