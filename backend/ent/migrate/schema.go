@@ -8,6 +8,122 @@ import (
 )
 
 var (
+	// ContentVersionsColumns holds the columns for the "content_versions" table.
+	ContentVersionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "checksum", Type: field.TypeString, Unique: true},
+		{Name: "imported_at", Type: field.TypeTime},
+	}
+	// ContentVersionsTable holds the schema information for the "content_versions" table.
+	ContentVersionsTable = &schema.Table{
+		Name:       "content_versions",
+		Columns:    ContentVersionsColumns,
+		PrimaryKey: []*schema.Column{ContentVersionsColumns[0]},
+	}
+	// CoursesColumns holds the columns for the "courses" table.
+	CoursesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "language", Type: field.TypeEnum, Enums: []string{"go", "rust"}},
+		{Name: "project", Type: field.TypeString},
+		{Name: "title", Type: field.TypeString},
+	}
+	// CoursesTable holds the schema information for the "courses" table.
+	CoursesTable = &schema.Table{
+		Name:       "courses",
+		Columns:    CoursesColumns,
+		PrimaryKey: []*schema.Column{CoursesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "course_language_project",
+				Unique:  true,
+				Columns: []*schema.Column{CoursesColumns[1], CoursesColumns[2]},
+			},
+		},
+	}
+	// ExercisesColumns holds the columns for the "exercises" table.
+	ExercisesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "slug", Type: field.TypeString},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"quiz", "flashcard", "review"}},
+		{Name: "title", Type: field.TypeString},
+		{Name: "payload", Type: field.TypeJSON},
+		{Name: "content_version_exercises", Type: field.TypeInt, Nullable: true},
+		{Name: "course_exercises", Type: field.TypeInt},
+	}
+	// ExercisesTable holds the schema information for the "exercises" table.
+	ExercisesTable = &schema.Table{
+		Name:       "exercises",
+		Columns:    ExercisesColumns,
+		PrimaryKey: []*schema.Column{ExercisesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "exercises_content_versions_exercises",
+				Columns:    []*schema.Column{ExercisesColumns[5]},
+				RefColumns: []*schema.Column{ContentVersionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "exercises_courses_exercises",
+				Columns:    []*schema.Column{ExercisesColumns[6]},
+				RefColumns: []*schema.Column{CoursesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "exercise_slug_course_exercises",
+				Unique:  true,
+				Columns: []*schema.Column{ExercisesColumns[1], ExercisesColumns[6]},
+			},
+		},
+	}
+	// LessonsColumns holds the columns for the "lessons" table.
+	LessonsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "slug", Type: field.TypeString},
+		{Name: "order", Type: field.TypeInt},
+		{Name: "title", Type: field.TypeString},
+		{Name: "minutes", Type: field.TypeInt},
+		{Name: "xp", Type: field.TypeInt},
+		{Name: "body", Type: field.TypeString, Size: 2147483647, Default: ""},
+		{Name: "owned_files", Type: field.TypeJSON, Nullable: true},
+		{Name: "hints", Type: field.TypeJSON, Nullable: true},
+		{Name: "failure_explanations", Type: field.TypeJSON, Nullable: true},
+		{Name: "content_version_lessons", Type: field.TypeInt, Nullable: true},
+		{Name: "course_lessons", Type: field.TypeInt},
+	}
+	// LessonsTable holds the schema information for the "lessons" table.
+	LessonsTable = &schema.Table{
+		Name:       "lessons",
+		Columns:    LessonsColumns,
+		PrimaryKey: []*schema.Column{LessonsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "lessons_content_versions_lessons",
+				Columns:    []*schema.Column{LessonsColumns[10]},
+				RefColumns: []*schema.Column{ContentVersionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "lessons_courses_lessons",
+				Columns:    []*schema.Column{LessonsColumns[11]},
+				RefColumns: []*schema.Column{CoursesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "lesson_slug_course_lessons",
+				Unique:  true,
+				Columns: []*schema.Column{LessonsColumns[1], LessonsColumns[11]},
+			},
+			{
+				Name:    "lesson_order_course_lessons",
+				Unique:  true,
+				Columns: []*schema.Column{LessonsColumns[2], LessonsColumns[11]},
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -22,9 +138,17 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		ContentVersionsTable,
+		CoursesTable,
+		ExercisesTable,
+		LessonsTable,
 		UsersTable,
 	}
 )
 
 func init() {
+	ExercisesTable.ForeignKeys[0].RefTable = ContentVersionsTable
+	ExercisesTable.ForeignKeys[1].RefTable = CoursesTable
+	LessonsTable.ForeignKeys[0].RefTable = ContentVersionsTable
+	LessonsTable.ForeignKeys[1].RefTable = CoursesTable
 }

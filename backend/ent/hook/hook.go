@@ -9,6 +9,54 @@ import (
 	"github.com/ChristophBe/loopback/backend/ent"
 )
 
+// The ContentVersionFunc type is an adapter to allow the use of ordinary
+// function as ContentVersion mutator.
+type ContentVersionFunc func(context.Context, *ent.ContentVersionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ContentVersionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ContentVersionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentVersionMutation", m)
+}
+
+// The CourseFunc type is an adapter to allow the use of ordinary
+// function as Course mutator.
+type CourseFunc func(context.Context, *ent.CourseMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CourseFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CourseMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CourseMutation", m)
+}
+
+// The ExerciseFunc type is an adapter to allow the use of ordinary
+// function as Exercise mutator.
+type ExerciseFunc func(context.Context, *ent.ExerciseMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ExerciseFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ExerciseMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ExerciseMutation", m)
+}
+
+// The LessonFunc type is an adapter to allow the use of ordinary
+// function as Lesson mutator.
+type LessonFunc func(context.Context, *ent.LessonMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f LessonFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.LessonMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LessonMutation", m)
+}
+
 // The UserFunc type is an adapter to allow the use of ordinary
 // function as User mutator.
 type UserFunc func(context.Context, *ent.UserMutation) (ent.Value, error)

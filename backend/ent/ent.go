@@ -12,6 +12,10 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/ChristophBe/loopback/backend/ent/contentversion"
+	"github.com/ChristophBe/loopback/backend/ent/course"
+	"github.com/ChristophBe/loopback/backend/ent/exercise"
+	"github.com/ChristophBe/loopback/backend/ent/lesson"
 	"github.com/ChristophBe/loopback/backend/ent/user"
 )
 
@@ -73,7 +77,11 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			user.Table: user.ValidColumn,
+			contentversion.Table: contentversion.ValidColumn,
+			course.Table:         course.ValidColumn,
+			exercise.Table:       exercise.ValidColumn,
+			lesson.Table:         lesson.ValidColumn,
+			user.Table:           user.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)
