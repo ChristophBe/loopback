@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
-import { readdirSync } from 'node:fs'
+import { mkdtempSync, readdirSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { root, validateFile, validateTree } from '../content-validator.mjs'
+import { docExamples, root, validateDoc, validateFile, validateTree } from '../content-validator.mjs'
 
 const fixtures = new URL('./fixtures/', import.meta.url).pathname
 const types = ['lesson', 'quiz', 'flashcard', 'review']
@@ -68,4 +69,19 @@ test('CLI prints file and field and exits 1 on failure', () => {
 test('CLI exits 0 on the repository content', () => {
   const r = spawnSync('node', ['validate-content.mjs'], { cwd: join(root, 'tools'), encoding: 'utf8' })
   assert.equal(r.status, 0, r.stderr)
+})
+
+test('docs/content-format.md has one valid example of each type', () => {
+  const doc = join(root, 'docs/content-format.md')
+  assert.deepEqual(docExamples(doc).map((e) => e.type).sort(), [...types].sort())
+  assert.deepEqual(validateDoc(doc).failures, [])
+})
+
+test('doc examples that are invalid or missing are reported', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'doc-'))
+  const doc = join(dir, 'doc.md')
+  writeFileSync(doc, '<!-- example: quiz -->\n```json\n{"type":"quiz"}\n```\n')
+  const { failures } = validateDoc(doc)
+  assert.ok(failures.some((f) => f.field === 'title'))
+  assert.ok(failures.some((f) => f.field === 'examples' && /"lesson"/.test(f.message)))
 })
