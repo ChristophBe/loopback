@@ -266,3 +266,5 @@ components:
         dailyGoalLessons:
           type: integer
           minimum: 1
+    CheckResult:
+      $ref: "schemas/check-result.schema.json"
