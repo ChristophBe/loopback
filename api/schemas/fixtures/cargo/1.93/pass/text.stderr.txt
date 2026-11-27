@@ -1,4 +1,4 @@
    Compiling demo v0.1.0 (/work/demo)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s
      Running unittests src/lib.rs (/tmp/target/debug/deps/demo-8f97587c93e2356f)
    Doc-tests demo
