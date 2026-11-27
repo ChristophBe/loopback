@@ -71,4 +71,4 @@ reset: .env ## Delete the database and start again
 	$(MAKE) up
 
 import: .env ## Re-run the content import
-	$(COMPOSE) run --rm import
+	CONTENT_SHA="$$(git rev-parse HEAD)" $(COMPOSE) run --rm import
