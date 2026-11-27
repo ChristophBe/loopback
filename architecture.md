@@ -9,7 +9,7 @@ Every interface between components is defined as a spec first. Code is generated
 | Spec (source of truth) | Generates |
 |---|---|
 | `api/openapi.yaml` (OpenAPI 3.1) | Go server interface and types (`oapi-codegen`, strict Echo server), TypeScript client and types for the web app (`openapi-typescript`, `openapi-fetch`), Kotlin client and models for the plugin (`openapi-generator`), request validation, API reference, mock server for client development (Prism) |
-| `api/schemas/lesson.schema.json` (JSON Schema for lesson, quiz, flashcard and review front matter) | Go structs for the importer, TypeScript and Kotlin types, content lint in CI over every `content/**/*.md` |
+| `api/schemas/lesson.schema.json` (JSON Schema for lesson, quiz, flashcard and review front matter) | Go structs for the importer, TypeScript and Kotlin types, content lint in CI over every lesson `content/**/*.md` and every quiz, flashcard and review `content/**/*.json` |
 | `api/schemas/check-result.schema.json` (normalized test result) | Kotlin `CheckResult` model, Go type for the completion report, shared fixtures for the runner tests |
 | `backend/ent/schema/*.go` (ent schemas) | typed Go ORM client, queries and predicates (`ent generate`), versioned SQL migrations (Atlas) |
 | `brand/tokens.json` | CSS variables for the web app, Kotlin theme constants for the plugin |
@@ -46,7 +46,7 @@ backend/        Go module
   migrations/   Atlas migrations
 web/            React + Vite SPA
 plugin/         JetBrains plugin (Kotlin, Gradle IntelliJ Platform plugin)
-content/        lessons per <lang>/<project>/NN-slug.md, quizzes, reviews, template-<lang>/
+content/        lessons per <lang>/<project>/NN-slug.md, quizzes, flashcards and reviews as <lang>/<project>/NN-slug.json, template-<lang>/
 brand/          tokens and rules (exists)
 deploy/         compose.yaml, Dockerfiles, .env.example
 Makefile        gen, check-gen, test, up, down, reset

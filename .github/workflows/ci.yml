@@ -98,7 +98,7 @@ jobs:
           node-version: 24
           cache: pnpm
           cache-dependency-path: tools/pnpm-lock.yaml
-      - run: make lint-specs lint-content lint-docs
+      - run: make lint-specs lint-content lint-docs test-content
       - run: pipx install yamllint
       - run: |
           yamllint -d "{extends: relaxed, rules: {line-length: disable}}" .github deploy api

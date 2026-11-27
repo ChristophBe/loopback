@@ -2,7 +2,7 @@
 COMPOSE := docker compose -f deploy/compose.yaml --env-file .env
 
 .PHONY: help gen check-gen lint lint-go lint-web lint-plugin lint-docs lint-specs lint-content \
-	test test-go test-web test-plugin up down reset import
+	test test-go test-web test-plugin test-content up down reset import
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -39,10 +39,10 @@ lint-docs: ## Lint the Markdown files
 lint-specs: ## Lint the OpenAPI spec
 	cd tools && pnpm install --frozen-lockfile && pnpm run lint:specs
 
-lint-content: ## Validate lessons and fixtures against the schemas
+lint-content: ## Validate lessons, quizzes, flashcards, reviews and fixtures against the schemas
 	cd tools && pnpm install --frozen-lockfile && pnpm run lint:content
 
-test: test-go test-web test-plugin ## Run every test
+test: test-go test-web test-plugin test-content ## Run every test
 
 test-go: ## Test the backend (set TEST_DATABASE_URL for the ent tests)
 	cd backend && go test -race -cover ./...
@@ -52,6 +52,9 @@ test-web: ## Test the web app
 
 test-plugin: ## Test the plugin
 	cd plugin && ./gradlew test
+
+test-content: ## Test the content validator
+	cd tools && pnpm install --frozen-lockfile && pnpm test
 
 .env:
 	cp deploy/.env.example .env
