@@ -85,3 +85,8 @@ test('doc examples that are invalid or missing are reported', () => {
   assert.ok(failures.some((f) => f.field === 'title'))
   assert.ok(failures.some((f) => f.field === 'examples' && /"lesson"/.test(f.message)))
 })
+
+test('lesson with a malformed referenceSolution is rejected on that field', () => {
+  const problems = validateFile(join(fixtures, 'invalid', 'lesson-bad-reference-solution.md'))
+  assert.deepEqual(problems.map((p) => p.field), ['referenceSolution'])
+})
