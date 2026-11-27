@@ -22,7 +22,7 @@ object RecordedFixtures {
         for (dir in versions(toolchain)) {
             try {
                 check(dir)
-            } catch (e: AssertionError) {
+            } catch (e: Throwable) {
                 throw AssertionError("$toolchain ${dir.name}: ${e.message}", e)
             }
         }
