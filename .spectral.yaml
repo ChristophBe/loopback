@@ -1,1 +1,6 @@
 extends: ["spectral:oas"]
+overrides:
+  # CheckResult is only consumed by the plugin runners, no endpoint returns it yet.
+  - files: ["api/openapi.yaml#/components/schemas/CheckResult"]
+    rules:
+      oas3-unused-component: off
