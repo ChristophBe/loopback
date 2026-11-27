@@ -21,6 +21,7 @@ object CargoOutputParser {
     private const val MILLIS_PER_SECOND = 1000
     private const val MAX_MESSAGE_LINES = 40
 
+    private val finishedEvents = setOf("ok", "failed")
     private val textTest = Regex("""^test (.+) \.\.\. (ok|FAILED)\b.*$""")
     private val textFailure = Regex("""^---- (.+) stdout ----$""")
     private val assertion = Regex("""^assertion `left [=!]= right` failed""")
@@ -38,7 +39,7 @@ object CargoOutputParser {
         if (events.none { it.get("type")?.asString == "suite" }) return null
         val tests =
             events
-                .filter { it.get("type")?.asString == "test" && it.get("event")?.asString in setOf("ok", "failed") }
+                .filter { it.get("type")?.asString == "test" && it.get("event")?.asString in finishedEvents }
                 .map { event ->
                     val ok = event.get("event").asString == "ok"
                     val message = event.get("stdout")?.asString.orEmpty()
