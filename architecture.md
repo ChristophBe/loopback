@@ -61,7 +61,7 @@ A modular monolith in Go. Echo is the router, with middleware for auth, request 
 | Module | Responsibility |
 |---|---|
 | auth | OAuth sign-in (GitHub, Google) and email magic link. Short-lived access JWT plus refresh token. The plugin uses the device-code flow: it shows a code, the learner approves it in the browser. |
-| content | The importer reads the Markdown files, validates the YAML front matter (id, language, project, order, owned files, XP, minutes, type `lesson`, `quiz`, `flashcard` or `review`), and upserts them into Postgres, versioned by the content git SHA. The API for content is read-only. |
+| content | The importer reads the Markdown files (format: [docs/content-format.md](docs/content-format.md)), validates the YAML front matter (id, language, project, order, owned files, XP, minutes, type `lesson`, `quiz`, `flashcard` or `review`), and upserts them into Postgres, versioned by the content git SHA. The API for content is read-only. |
 | progress | Lesson completions and quiz or review attempts per learner. |
 | gamification | An append-only `xp_events` ledger. Level, streak and daily goal are derived from it, with the streak computed in the learner's time zone. One engine serves both clients, so their state matches. |
 
