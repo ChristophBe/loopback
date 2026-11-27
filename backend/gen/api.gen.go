@@ -5,10 +5,16 @@ package gen
 
 import (
 	"bytes"
+	"compress/flate"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
+	"strings"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v4"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -825,4 +831,131 @@ func (sh *strictHandler) GetHealth(ctx echo.Context) error {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
 	return nil
+}
+
+// Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
+// Stored as a slice of fixed-width chunks rather than one concatenated
+// const string: with thousands of chunks the chained `+` fold is several
+// times slower for the Go compiler than parsing a slice literal.
+var swaggerSpec = []string{
+	"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",
+	"1OmLfvew+18AAAD//w==",
+}
+
+// decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
+// after base64-decoding and flate-decompressing the embedded blob.
+func decodeSpec() ([]byte, error) {
+	encoded := strings.Join(swaggerSpec, "")
+	compressed, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, fmt.Errorf("error base64 decoding spec: %w", err)
+	}
+	zr := flate.NewReader(bytes.NewReader(compressed))
+	var buf bytes.Buffer
+	if _, err := buf.ReadFrom(zr); err != nil {
+		return nil, fmt.Errorf("read flate: %w", err)
+	}
+	if err := zr.Close(); err != nil {
+		return nil, fmt.Errorf("close flate reader: %w", err)
+	}
+
+	return buf.Bytes(), nil
+}
+
+var rawSpec = decodeSpecCached()
+
+// a naive cache of the decoded OpenAPI spec
+func decodeSpecCached() func() ([]byte, error) {
+	data, err := decodeSpec()
+	return func() ([]byte, error) {
+		return data, err
+	}
+}
+
+// Constructs a synthetic filesystem for resolving external references when loading openapi specifications.
+func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
+	res := make(map[string]func() ([]byte, error))
+	if len(pathToFile) > 0 {
+		res[pathToFile] = rawSpec
+	}
+
+	return res
+}
+
+// GetSpec returns the OpenAPI specification corresponding to the generated
+// code in this file. External references in the spec are resolved through
+// PathToRawSpec; externally-referenced files must be embedded in their
+// corresponding Go packages (via the import-mapping feature). URL-based
+// external refs are not supported.
+func GetSpec() (swagger *openapi3.T, err error) {
+	resolvePath := PathToRawSpec("")
+
+	loader := openapi3.NewLoader()
+	loader.IsExternalRefsAllowed = true
+	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
+		pathToFile := url.String()
+		pathToFile = path.Clean(pathToFile)
+		getSpec, ok := resolvePath[pathToFile]
+		if !ok {
+			err1 := fmt.Errorf("path not found: %s", pathToFile)
+			return nil, err1
+		}
+		return getSpec()
+	}
+	var specData []byte
+	specData, err = rawSpec()
+	if err != nil {
+		return
+	}
+	swagger, err = loader.LoadFromData(specData)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// GetSpecJSON returns the raw JSON bytes of the embedded OpenAPI
+// specification: decompressed but not unmarshaled. External references
+// are not resolved here; the bytes are the spec exactly as embedded by
+// codegen. The result is cached at package init time, so repeated calls
+// are cheap.
+func GetSpecJSON() ([]byte, error) {
+	return rawSpec()
+}
+
+// GetSwagger returns the OpenAPI specification corresponding to the
+// generated code in this file.
+//
+// Deprecated: GetSwagger predates kin-openapi renaming openapi3.Swagger
+// to openapi3.T. Use [GetSpec] instead. This wrapper is retained for
+// backwards compatibility.
+func GetSwagger() (*openapi3.T, error) {
+	return GetSpec()
 }
