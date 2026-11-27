@@ -13,12 +13,13 @@ const load = (path) => JSON.parse(readFileSync(join(root, path), 'utf8'))
 const ajv = new Ajv({ allErrors: true, strict: true })
 const lessonSchema = load('api/schemas/lesson.schema.json')
 
-export const validators = {
-  lesson: ajv.compile(lessonSchema),
+const lesson = ajv.compile(lessonSchema)
+const checkResult = ajv.compile(load('api/schemas/check-result.schema.json'))
+// JSON content, selected by its "type" field.
+const exercises = {
   quiz: ajv.compile(load('api/schemas/quiz.schema.json')),
   flashcard: ajv.compile(load('api/schemas/flashcard.schema.json')),
   review: ajv.compile(load('api/schemas/review.schema.json')),
-  'check-result': ajv.compile(load('api/schemas/check-result.schema.json')),
 }
 
 export const requiredBodySections = lessonSchema.definitions.requiredBodySections.const
@@ -70,7 +71,7 @@ export function validateFile(file) {
   const text = readFileSync(file, 'utf8')
   if (file.endsWith('.md')) {
     const { data, content } = matter(text)
-    return [...schemaProblems(validators.lesson, data), ...bodyProblems(content)]
+    return [...schemaProblems(lesson, data), ...bodyProblems(content)]
   }
   let data
   try {
@@ -78,8 +79,8 @@ export function validateFile(file) {
   } catch (e) {
     return [{ field: '(root)', message: `is not valid JSON: ${e.message}` }]
   }
-  const validate = Object.hasOwn(validators, data?.type) ? validators[data.type] : undefined
-  if (!validate || data.type === 'lesson' || data.type === 'check-result') {
+  const validate = Object.hasOwn(exercises, data?.type) ? exercises[data.type] : undefined
+  if (!validate) {
     return [{ field: 'type', message: 'must be one of quiz, flashcard, review' }]
   }
   return schemaProblems(validate, data)
@@ -94,7 +95,7 @@ export function validateTree(contentDir = join(root, 'content'), fixtureDir = jo
   }
   const fixtures = walk(fixtureDir).filter((f) => f.endsWith('.json'))
   for (const file of fixtures) {
-    for (const p of schemaProblems(validators['check-result'], JSON.parse(readFileSync(file, 'utf8')))) {
+    for (const p of schemaProblems(checkResult, JSON.parse(readFileSync(file, 'utf8')))) {
       failures.push({ file: relative(root, file), ...p })
     }
   }
