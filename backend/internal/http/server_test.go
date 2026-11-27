@@ -5,6 +5,7 @@ import (
 	"io"
 	nethttp "net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -50,5 +51,31 @@ func TestConfig(t *testing.T) {
 	}
 	if got.Version != "test" || got.Gamification.XpPerLesson != 50 {
 		t.Errorf("config = %+v", got)
+	}
+}
+
+func TestAuthEndpointsNotImplemented(t *testing.T) {
+	tests := []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{nethttp.MethodPost, "/api/v1/auth/magic-link", `{"email":"a@example.com"}`},
+		{nethttp.MethodGet, "/api/v1/auth/oauth/github", ""},
+		{nethttp.MethodPost, "/api/v1/auth/device", ""},
+		{nethttp.MethodPost, "/api/v1/auth/token", `{"deviceCode":"d"}`},
+		{nethttp.MethodPost, "/api/v1/auth/refresh", `{"refreshToken":"r"}`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+			newServer().ServeHTTP(rec, req)
+
+			if rec.Code != nethttp.StatusNotImplemented {
+				t.Fatalf("status = %d, want 501", rec.Code)
+			}
+		})
 	}
 }
