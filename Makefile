@@ -10,7 +10,7 @@ help: ## Show this help
 gen: ## Generate code from the specs
 	cd backend && go generate ./...
 	cd web && pnpm install --frozen-lockfile && pnpm run gen
-	docker run --rm -v "$(CURDIR):/w" -w /w openapitools/openapi-generator-cli:v7.12.0 generate \
+	docker run --rm --user "$$(id -u):$$(id -g)" -v "$(CURDIR):/w" -w /w openapitools/openapi-generator-cli:v7.12.0 generate \
 		-i api/openapi.yaml -g kotlin \
 		--global-property models,modelTests=false,modelDocs=false,apiTests=false,apiDocs=false,supportingFiles=false \
 		-p library=jvm-okhttp4,serializationLibrary=gson,packageName=dev.loopback.api,modelPackage=dev.loopback.api.model \
