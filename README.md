@@ -11,3 +11,4 @@ Prerequisites: Go, Node 24 with pnpm, JDK 17, Docker, `golangci-lint` and GNU Ma
 - `make lint` and `make test` run every linter and test. Each component also has its own target, for example `make lint-go` or `make test-web`.
 - `make up` starts the local stack: web at <http://localhost:5173>, API at <http://localhost:8080/api/v1>, Mailpit at <http://localhost:8025>.
 - Set `TEST_DATABASE_URL` to a Postgres URL to run the database tests in `make test-go`.
+- `/implement <issue number>` implements a ready issue in a worktree, reviews it and opens a pull request.

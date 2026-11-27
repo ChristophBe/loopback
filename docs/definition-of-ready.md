@@ -60,3 +60,13 @@ Headings: `Environment`, `Steps to reproduce`, `Expected behavior`, `Actual beha
 - **Frequency and impact:** always or sometimes, and what it blocks (a lesson, correct XP, nothing but looks).
 - **Related issues:** the search for duplicates was done. Link related issues or write `none found`.
 - **Suspected cause:** optional, and only marked as a suspicion.
+
+## Definition of Done
+
+`/implement` checks these before it opens a pull request.
+
+- Every acceptance criterion has a test that fails without the change.
+- `make lint`, `make test` and `make check-gen` pass.
+- Specs are changed first and generated code is regenerated with `make gen`, never edited.
+- Docs that describe the changed behavior are updated.
+- The pull request links the issue with `Closes #<n>` and lists the checks that were run.
