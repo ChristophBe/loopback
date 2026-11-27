@@ -32,8 +32,10 @@ class CargoTestRunnerTest {
     private fun byName(result: CheckResult) = result.copy(tests = result.tests.sortedBy { it.name })
 
     /** Text output has no per-test times. */
-    private fun withoutDurations(result: CheckResult) =
-        byName(result.copy(tests = result.tests.map { it.copy(durationMs = null) }))
+    private fun withoutDurations(result: CheckResult): CheckResult {
+        val untimed = result.tests.map { it.copy(durationMs = null) }
+        return byName(result.copy(tests = untimed))
+    }
 
     /** Serves the recorded output of a case: the libtest files for the JSON command, the text files otherwise. */
     private class Recorded(
