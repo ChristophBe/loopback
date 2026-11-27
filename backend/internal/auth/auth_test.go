@@ -87,6 +87,7 @@ func TestLoadConfig(t *testing.T) {
 		"short":      {"JWT_SECRET": "short"},
 		"bad ttl":    {"JWT_SECRET": good, "JWT_ACCESS_TTL": "soon"},
 		"zero ttl":   {"JWT_SECRET": good, "JWT_ACCESS_TTL": "0s"},
+		"subsecond":  {"JWT_SECRET": good, "JWT_ACCESS_TTL": "500ms"},
 		"negative":   {"JWT_SECRET": good, "REFRESH_TOKEN_TTL": "-1h"},
 		"empty ttls": {"JWT_SECRET": " "},
 	} {
@@ -162,6 +163,12 @@ paths:
     get:
       security: []
       responses: {"200": {description: ok}}
+  /either:
+    get:
+      security:
+        - bearerAuth: []
+        - {}
+      responses: {"200": {description: ok}}
   /own:
     get:
       security:
@@ -184,7 +191,7 @@ func TestMiddleware(t *testing.T) {
 		id, ok := auth.UserID(c.Request().Context())
 		return c.String(http.StatusOK, fmt.Sprintf("%v:%d", ok, id))
 	}
-	for _, p := range []string{"/api/me", "/api/things/:id", "/api/open", "/api/own"} {
+	for _, p := range []string{"/api/me", "/api/things/:id", "/api/open", "/api/own", "/api/either"} {
 		e.GET(p, handler)
 	}
 
@@ -224,6 +231,9 @@ func TestMiddleware(t *testing.T) {
 		}
 	}
 
+	if rec := do("/api/either", ""); rec.Code != http.StatusOK {
+		t.Errorf("optional auth route: %d", rec.Code)
+	}
 	if rec := do("/api/open", ""); rec.Code != http.StatusOK || rec.Body.String() != "false:0" {
 		t.Errorf("open route: %d %q", rec.Code, rec.Body.String())
 	}

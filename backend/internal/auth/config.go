@@ -57,10 +57,10 @@ func (c Config) Validate() error {
 		return errors.New("JWT_SECRET is not set")
 	case len(c.Secret) < MinSecretLength:
 		return fmt.Errorf("JWT_SECRET must be at least %d bytes", MinSecretLength)
-	case c.AccessTTL <= 0:
-		return errors.New("access token lifetime must be positive")
-	case c.RefreshTTL <= 0:
-		return errors.New("refresh token lifetime must be positive")
+	case c.AccessTTL < time.Second:
+		return errors.New("access token lifetime must be at least 1s")
+	case c.RefreshTTL < time.Second:
+		return errors.New("refresh token lifetime must be at least 1s")
 	}
 	return nil
 }

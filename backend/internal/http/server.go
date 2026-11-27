@@ -3,7 +3,9 @@ package http
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -28,6 +30,9 @@ var _ gen.StrictServerInterface = (*Server)(nil)
 
 // New returns the Echo router with all API routes registered.
 func New(version string, rules gamification.Rules, log *logrus.Logger, authSvc *auth.Service) (*echo.Echo, error) {
+	if authSvc == nil {
+		return nil, errors.New("auth service is required")
+	}
 	spec, err := gen.GetSpec()
 	if err != nil {
 		return nil, fmt.Errorf("load embedded spec: %w", err)
@@ -39,6 +44,7 @@ func New(version string, rules gamification.Rules, log *logrus.Logger, authSvc *
 	e.Use(middleware.RequestID())
 	e.Use(requestLogger(log))
 	e.Use(middleware.Recover())
+	e.Use(noStore(BasePath + "/auth/"))
 	e.Use(authSvc.Middleware(spec, BasePath))
 
 	s := &Server{version: version, rules: rules, auth: authSvc}
@@ -61,6 +67,19 @@ func (s *Server) GetConfig(context.Context, gen.GetConfigRequestObject) (gen.Get
 			DailyGoalLessons: s.rules.DailyGoalLessons,
 		},
 	}, nil
+}
+
+// noStore keeps token responses out of caches (RFC 6749 section 5.1).
+func noStore(prefix string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			if strings.HasPrefix(c.Request().URL.Path, prefix) {
+				c.Response().Header().Set(echo.HeaderCacheControl, "no-store")
+				c.Response().Header().Set("Pragma", "no-cache")
+			}
+			return next(c)
+		}
+	}
 }
 
 func requestLogger(log *logrus.Logger) echo.MiddlewareFunc {
