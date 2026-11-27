@@ -5,6 +5,12 @@
   "type": "object",
   "required": ["id", "type", "language", "project", "order", "title", "minutes", "xp", "ownedFiles"],
   "additionalProperties": false,
+  "definitions": {
+    "requiredBodySections": {
+      "description": "Level-2 Markdown headings every lesson body must contain, in this order. A front-matter schema cannot check the body, so the content validator enforces this list (issue #36).",
+      "const": ["Objective", "Instructions"]
+    }
+  },
   "properties": {
     "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
     "type": { "enum": ["lesson", "quiz", "flashcard", "review"] },
@@ -14,6 +20,16 @@
     "title": { "type": "string", "minLength": 1 },
     "minutes": { "type": "integer", "minimum": 1, "maximum": 15 },
     "xp": { "type": "integer", "minimum": 1 },
-    "ownedFiles": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }
+    "ownedFiles": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+    "hints": {
+      "description": "Ordered hints, revealed one at a time, from nudge to near-solution.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "failureExplanations": {
+      "description": "Maps a test name to the explanation shown when that test fails.",
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    }
   }
 }
