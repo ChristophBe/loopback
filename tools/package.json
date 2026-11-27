@@ -6,7 +6,8 @@
   "scripts": {
     "lint:specs": "spectral lint --fail-severity=warn --ruleset ../.spectral.yaml ../api/openapi.yaml",
     "lint:docs": "cd .. && markdownlint-cli2 \"**/*.md\"",
-    "lint:content": "node validate-content.mjs"
+    "lint:content": "node validate-content.mjs",
+    "test": "node --test test/*.test.mjs"
   },
   "devDependencies": {
     "@stoplight/spectral-cli": "^6.17.1",

@@ -1,0 +1,15 @@
+{
+  "id": "go-slices-quiz",
+  "type": "quiz",
+  "language": "go",
+  "project": "loopback",
+  "title": "Slices",
+  "questions": [
+    {
+      "prompt": "What does len(nil) return for a nil slice?",
+      "choices": ["0", "-1", "It panics"],
+      "answer": 0,
+      "explanation": "A nil slice has length 0."
+    }
+  ]
+}
