@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs'
 import type { FlashcardExercise, QuizExercise, BadCodeReviewExercise } from './gen/content'
 
 function example<T>(name: string): T {
-  const url = new URL(`../../api/schemas/examples/${name}-valid.json`, import.meta.url)
-  return JSON.parse(readFileSync(url, 'utf8')) as T
+  const path = `../api/schemas/examples/${name}-valid.json` // tests run from web/
+  return JSON.parse(readFileSync(path, 'utf8')) as T
 }
 
 describe('generated content types', () => {
