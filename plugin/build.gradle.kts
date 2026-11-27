@@ -27,6 +27,7 @@ dependencies {
 
 kotlin {
     jvmToolchain(17)
+    compilerOptions.freeCompilerArgs.add("-jvm-default=no-compatibility")
 }
 
 intellijPlatform {
@@ -37,7 +38,7 @@ intellijPlatform {
     }
     pluginVerification {
         ides {
-            ide(org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdeaCommunity, "2024.3")
+            create(org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdeaCommunity, "2024.3")
         }
     }
 }
