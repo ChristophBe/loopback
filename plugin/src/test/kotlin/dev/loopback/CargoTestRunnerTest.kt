@@ -28,11 +28,12 @@ class CargoTestRunnerTest {
 
     private fun expected(case: String) = Gson().fromJson(fixture(case, "expected.json"), CheckResult::class.java)
 
-    /** Text output has no per-test times, and lists the tests in the order the test threads finish. */
-    private fun withoutDurations(result: CheckResult): CheckResult {
-        val tests = result.tests.map { it.copy(durationMs = null) }.sortedBy { it.name }
-        return result.copy(tests = tests)
-    }
+    /** The test threads finish in any order, so results are compared by test name. */
+    private fun byName(result: CheckResult) = result.copy(tests = result.tests.sortedBy { it.name })
+
+    /** Text output has no per-test times. */
+    private fun withoutDurations(result: CheckResult) =
+        byName(result.copy(tests = result.tests.map { it.copy(durationMs = null) }))
 
     /** Serves the recorded output of a case: the libtest files for the JSON command, the text files otherwise. */
     private class Recorded(
@@ -65,7 +66,10 @@ class CargoTestRunnerTest {
     @Test
     fun parsesPassingLibtestJson() =
         eachVersion {
-            assertEquals(expected("pass"), CargoOutputParser.parseLibtestJson(fixture("pass", "libtest.stdout.jsonl")))
+            assertEquals(
+                byName(expected("pass")),
+                byName(CargoOutputParser.parseLibtestJson(fixture("pass", "libtest.stdout.jsonl"))!!),
+            )
         }
 
     @Test
@@ -73,7 +77,7 @@ class CargoTestRunnerTest {
         eachVersion {
             val result = CargoOutputParser.parseLibtestJson(fixture("fail", "libtest.stdout.jsonl"))!!
 
-            assertEquals(expected("fail"), result)
+            assertEquals(byName(expected("fail")), byName(result))
             val failed = result.tests.single { it.status == Status.fail }
             assertEquals("tests::adds_negative_numbers", failed.name)
             assertEquals("-2", failed.expected)
@@ -176,7 +180,7 @@ class CargoTestRunnerTest {
         eachVersion {
             val (runner, executor) = runner("fail")
 
-            assertEquals(expected("fail"), runner.run())
+            assertEquals(byName(expected("fail")), byName(runner.run()))
             assertEquals(1, executor.commands.size)
         }
 

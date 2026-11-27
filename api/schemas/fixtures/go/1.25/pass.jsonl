@@ -1,12 +1,12 @@
-{"Time":"2026-11-27T23:12:14.513575508Z","Action":"start","Package":"example.com/parser"}
-{"Time":"2026-11-27T23:12:14.514740425Z","Action":"run","Package":"example.com/parser","Test":"TestParseSimpleString"}
-{"Time":"2026-11-27T23:12:14.514803008Z","Action":"output","Package":"example.com/parser","Test":"TestParseSimpleString","Output":"=== RUN   TestParseSimpleString\n"}
-{"Time":"2026-11-27T23:12:14.514855258Z","Action":"output","Package":"example.com/parser","Test":"TestParseSimpleString","Output":"--- PASS: TestParseSimpleString (0.00s)\n"}
-{"Time":"2026-11-27T23:12:14.514890383Z","Action":"pass","Package":"example.com/parser","Test":"TestParseSimpleString","Elapsed":0}
-{"Time":"2026-11-27T23:12:14.514936133Z","Action":"run","Package":"example.com/parser","Test":"TestParseError"}
-{"Time":"2026-11-27T23:12:14.514967842Z","Action":"output","Package":"example.com/parser","Test":"TestParseError","Output":"=== RUN   TestParseError\n"}
-{"Time":"2026-11-27T23:12:14.51499505Z","Action":"output","Package":"example.com/parser","Test":"TestParseError","Output":"--- PASS: TestParseError (0.00s)\n"}
-{"Time":"2026-11-27T23:12:14.515018425Z","Action":"pass","Package":"example.com/parser","Test":"TestParseError","Elapsed":0}
-{"Time":"2026-11-27T23:12:14.51504205Z","Action":"output","Package":"example.com/parser","Output":"PASS\n"}
-{"Time":"2026-11-27T23:12:14.515082842Z","Action":"output","Package":"example.com/parser","Output":"ok  \texample.com/parser\t0.001s\n"}
-{"Time":"2026-11-27T23:12:14.515320092Z","Action":"pass","Package":"example.com/parser","Elapsed":0.002}
+{"Time":"2026-11-27T23:13:13.891187925Z","Action":"start","Package":"example.com/parser"}
+{"Time":"2026-11-27T23:13:13.892546091Z","Action":"run","Package":"example.com/parser","Test":"TestParseSimpleString"}
+{"Time":"2026-11-27T23:13:13.892633091Z","Action":"output","Package":"example.com/parser","Test":"TestParseSimpleString","Output":"=== RUN   TestParseSimpleString\n"}
+{"Time":"2026-11-27T23:13:13.892678425Z","Action":"output","Package":"example.com/parser","Test":"TestParseSimpleString","Output":"--- PASS: TestParseSimpleString (0.00s)\n"}
+{"Time":"2026-11-27T23:13:13.892724133Z","Action":"pass","Package":"example.com/parser","Test":"TestParseSimpleString","Elapsed":0}
+{"Time":"2026-11-27T23:13:13.892767258Z","Action":"run","Package":"example.com/parser","Test":"TestParseError"}
+{"Time":"2026-11-27T23:13:13.892796633Z","Action":"output","Package":"example.com/parser","Test":"TestParseError","Output":"=== RUN   TestParseError\n"}
+{"Time":"2026-11-27T23:13:13.892833216Z","Action":"output","Package":"example.com/parser","Test":"TestParseError","Output":"--- PASS: TestParseError (0.00s)\n"}
+{"Time":"2026-11-27T23:13:13.892862883Z","Action":"pass","Package":"example.com/parser","Test":"TestParseError","Elapsed":0}
+{"Time":"2026-11-27T23:13:13.892889591Z","Action":"output","Package":"example.com/parser","Output":"PASS\n"}
+{"Time":"2026-11-27T23:13:13.892940383Z","Action":"output","Package":"example.com/parser","Output":"ok  \texample.com/parser\t0.001s\n"}
+{"Time":"2026-11-27T23:13:13.893193925Z","Action":"pass","Package":"example.com/parser","Elapsed":0.002}

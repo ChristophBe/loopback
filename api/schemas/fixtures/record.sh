@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # <fixture folder>:<Docker image tag>
-GO_VERSIONS="1.26:1.26.5 1.25:1.25"
+GO_VERSIONS="1.26:1.26.5 1.25:1.25.14"
 RUST_VERSIONS="1.93:1.93.0 1.85:1.85.0"
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -126,7 +126,7 @@ record_all() { # <go|cargo> <versions>
     mkdir -p "$dir"
     echo "recording $kind with $image into $dir"
     docker run --rm -v "$here/record.sh:/record.sh:ro" -v "$dir:/out" -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
-      "$image" bash -c "source /record.sh --functions && inner_$kind /out; chown -R \$HOST_UID:\$HOST_GID /out"
+      "$image" bash -c "source /record.sh --functions && inner_$kind /out; rc=\$?; chown -R \$HOST_UID:\$HOST_GID /out; exit \$rc"
     normalize "$dir"
     if [ "$kind" = cargo ]; then write_build_error_expected "$dir"; fi
   done
