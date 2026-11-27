@@ -21,6 +21,11 @@
     "minutes": { "type": "integer", "minimum": 1, "maximum": 15 },
     "xp": { "type": "integer", "minimum": 1 },
     "ownedFiles": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+    "referenceSolution": {
+      "description": "Directory of the reference solution, relative to the directory of the lesson file, with no leading or trailing slash and no '..' segment. By convention it is solutions/<lesson file name without extension>, for example solutions/01-parse-simple-string next to 01-parse-simple-string.md. The directory holds one file per entry in ownedFiles, at the same relative path, so the replay job can copy them over the learner's project and prove the lesson tests pass.",
+      "type": "string",
+      "pattern": "^(?!(.*/)?\\.\\.(/|$))[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$"
+    },
     "hints": {
       "description": "Ordered hints, revealed one at a time, from nudge to near-solution.",
       "type": "array",
