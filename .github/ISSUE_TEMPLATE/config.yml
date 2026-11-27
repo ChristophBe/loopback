@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Definition of Ready
-    url: https://github.com/ChristophBe/code-trainer/blob/main/docs/definition-of-ready.md
+    url: https://github.com/ChristophBe/loopback/blob/main/docs/definition-of-ready.md
     about: Rules every issue is checked against.

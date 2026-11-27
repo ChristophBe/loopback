@@ -1,4 +1,4 @@
-# MVP of the Code Trainer
+# MVP of loopback
 
 The MVP tests the core idea from [goal.md](goal.md): a daily 5-minute lesson in which the learner makes a small coding change, gets an automated check and reads explanatory feedback. It should show whether this loop is engaging and whether people learn from it.
 

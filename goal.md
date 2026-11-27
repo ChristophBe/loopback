@@ -1,6 +1,6 @@
-# Goal of the Code Trainer
+# Goal of loopback
 
-Code Trainer is a gamified way to learn a programming language by building a real project.
+loopback is a gamified way to learn a programming language by building a real project.
 
 ## Audience
 
