@@ -66,6 +66,7 @@ func TestLoadSampleContent(t *testing.T) {
 
 func TestLoadSkipsTemplates(t *testing.T) {
 	root := sampleCopy(t)
+	write(t, root, "go/redis-server/solutions/01-parse-simple-string/notes.md", "not a lesson")
 	write(t, root, "template-go/bad.md", "not a lesson")
 	if _, err := content.Load(root); err != nil {
 		t.Fatal(err)
@@ -101,6 +102,7 @@ func TestLoadInvalid(t *testing.T) {
 		{"missing heading", "go/redis-server/01-parse-simple-string.md", strings.Replace(sample, "## Instructions", "## Steps", 1), "go/redis-server/01-parse-simple-string.md", "body"},
 		{"headings in wrong order", "go/redis-server/01-parse-simple-string.md", strings.NewReplacer("## Objective", "## TMP", "## Instructions", "## Objective", "## TMP", "## Instructions").Replace(sample), "go/redis-server/01-parse-simple-string.md", "body"},
 		{"language mismatch", "rust/redis-server/01-parse-simple-string.md", sample, "rust/redis-server/01-parse-simple-string.md", "language"},
+		{"bad reference solution", "go/redis-server/01-parse-simple-string.md", strings.Replace(sample, "referenceSolution: solutions/01-parse-simple-string", "referenceSolution: ../x", 1), "go/redis-server/01-parse-simple-string.md", "referenceSolution"},
 		{"bad depth", "x.json", quizJSON, "x.json", "path"},
 		{"bad json", "go/redis-server/q.json", "{", "go/redis-server/q.json", "(root)"},
 		{"unknown exercise type", "go/redis-server/q.json", `{"type":"poll"}`, "go/redis-server/q.json", "type"},

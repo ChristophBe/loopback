@@ -83,7 +83,9 @@ func Load(root string) (*Bundle, error) {
 			return err
 		}
 		if d.IsDir() {
-			if strings.HasPrefix(d.Name(), "template-") && path.Dir(rel) == "." {
+			// template-* hold learner template repos, solutions the reference
+			// solutions of lessons: neither contains lessons or exercises.
+			if (strings.HasPrefix(d.Name(), "template-") && path.Dir(rel) == ".") || (d.Name() == "solutions" && strings.Count(rel, "/") == 2) {
 				return fs.SkipDir
 			}
 			return nil
@@ -266,7 +268,7 @@ func parseLesson(f *file, data []byte, dirLang, dirProject string) (Lesson, bool
 		return Lesson{}, false
 	}
 	required := []string{"id", "type", "language", "project", "order", "title", "minutes", "xp", "ownedFiles"}
-	if !f.shape("", doc, required, "hints", "failureExplanations") {
+	if !f.shape("", doc, required, "hints", "failureExplanations", "referenceSolution") {
 		return Lesson{}, false
 	}
 	var fm gen.LessonSchemaJson
@@ -284,6 +286,9 @@ func parseLesson(f *file, data []byte, dirLang, dirProject string) (Lesson, bool
 		f.add("xp", "must be 1 or more")
 	}
 	checkStrings(f, "ownedFiles", fm.OwnedFiles, true)
+	if fm.ReferenceSolution != nil && !validRelDir(*fm.ReferenceSolution) {
+		f.add("referenceSolution", "must be a relative directory without leading or trailing slash and without . or .. segments")
+	}
 	checkStrings(f, "hints", fm.Hints, false)
 	for _, k := range sortedKeys(fm.FailureExplanations) {
 		f.requireString("failureExplanations."+k, fm.FailureExplanations[k])
@@ -305,6 +310,19 @@ func parseLesson(f *file, data []byte, dirLang, dirProject string) (Lesson, bool
 		Hints:               fm.Hints,
 		FailureExplanations: fm.FailureExplanations,
 	}, true
+}
+
+var segment = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
+
+// validRelDir mirrors the referenceSolution pattern of lesson.schema.json,
+// which uses a lookahead that Go's regexp does not support.
+func validRelDir(v string) bool {
+	for _, s := range strings.Split(v, "/") {
+		if s == "." || s == ".." || !segment.MatchString(s) {
+			return false
+		}
+	}
+	return true
 }
 
 func sortedKeys(m map[string]string) []string {
