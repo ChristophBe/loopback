@@ -128,7 +128,7 @@ record_all() { # <go|cargo> <versions>
     docker run --rm -v "$here/record.sh:/record.sh:ro" -v "$dir:/out" -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
       "$image" bash -c "source /record.sh --functions && inner_$kind /out; chown -R \$HOST_UID:\$HOST_GID /out"
     normalize "$dir"
-    [ "$kind" = cargo ] && write_build_error_expected "$dir"
+    if [ "$kind" = cargo ]; then write_build_error_expected "$dir"; fi
   done
 }
 

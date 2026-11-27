@@ -1,6 +1,6 @@
 {"ImportPath":"example.com/parser [example.com/parser.test]","Action":"build-output","Output":"# example.com/parser [example.com/parser.test]\n"}
 {"ImportPath":"example.com/parser [example.com/parser.test]","Action":"build-output","Output":"./parse.go:3:38: undefined: undefinedVar\n"}
 {"ImportPath":"example.com/parser [example.com/parser.test]","Action":"build-fail"}
-{"Time":"2026-11-27T23:09:14.959997675Z","Action":"start","Package":"example.com/parser"}
-{"Time":"2026-11-27T23:09:14.960065217Z","Action":"output","Package":"example.com/parser","Output":"FAIL\texample.com/parser [build failed]\n"}
-{"Time":"2026-11-27T23:09:14.960089258Z","Action":"fail","Package":"example.com/parser","Elapsed":0,"FailedBuild":"example.com/parser [example.com/parser.test]"}
+{"Time":"2026-11-27T23:12:14.661474633Z","Action":"start","Package":"example.com/parser"}
+{"Time":"2026-11-27T23:12:14.661563217Z","Action":"output","Package":"example.com/parser","Output":"FAIL\texample.com/parser [build failed]\n"}
+{"Time":"2026-11-27T23:12:14.661607008Z","Action":"fail","Package":"example.com/parser","Elapsed":0,"FailedBuild":"example.com/parser [example.com/parser.test]"}
