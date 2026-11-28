@@ -66,7 +66,7 @@ record-fixtures: ## Re-record the go test and cargo test fixtures with Docker
 	cp deploy/.env.example .env
 
 up: .env ## Start the local stack
-	$(COMPOSE) up --build -d --wait
+	CONTENT_SHA="$$(git rev-parse HEAD)" $(COMPOSE) up --build -d --wait
 	@echo "web http://localhost:5173  api http://localhost:8080/api/v1  mail http://localhost:8025"
 
 down: ## Stop the local stack

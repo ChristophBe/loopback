@@ -49,6 +49,8 @@ services:
       - ../api:/src/api:ro
     depends_on:
       db: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+      import: {condition: service_completed_successfully}
       mailpit: {condition: service_started}
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
@@ -56,13 +58,20 @@ services:
       timeout: 3s
       retries: 30
 
+  migrate:
+    image: arigaio/atlas:latest-alpine
+    command: ["migrate", "apply", "--dir", "file://migrations", "--url", "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable"]
+    volumes:
+      - ../backend/migrations:/migrations:ro
+    depends_on:
+      db: {condition: service_healthy}
+
   import:
     build:
       context: ..
       dockerfile: deploy/backend.Dockerfile
       target: build
     command: ["/out/import"]
-    profiles: ["tools"]
     environment:
       CONTENT_DIR: /content
       # The container has no git; `make import` passes the SHA of the checkout.
@@ -72,6 +81,7 @@ services:
       - ../content:/content:ro
     depends_on:
       db: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
 
   web:
     build:
