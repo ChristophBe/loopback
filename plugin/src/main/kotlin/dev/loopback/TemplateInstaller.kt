@@ -18,31 +18,43 @@ sealed interface InstallResult {
 
 /** Copies the template repo bundled in the plugin resources into a learner project folder. */
 object TemplateInstaller {
-    fun resourceName(language: String) = "/templates/template-$language.zip"
+    fun resourceName(language: String) = "/templates/template-${language.filter { it.isLetterOrDigit() }}.zip"
 
     fun install(
         language: String,
         target: Path,
     ): InstallResult {
         val stream = TemplateInstaller::class.java.getResourceAsStream(resourceName(language))
-        val problem = if (stream == null) "No template bundled for language '$language'." else targetProblem(target)
-        return if (stream == null || problem != null) {
-            InstallResult.Refused(problem.orEmpty())
-        } else {
-            try {
-                InstallResult.Installed(stream.use { extract(it, target) })
-            } catch (e: IOException) {
-                InstallResult.Refused("Could not copy the template: ${e.message}")
+        return stream.use {
+            val problem = if (it == null) "No template bundled for language '$language'." else targetProblem(target)
+            if (it == null || problem != null) {
+                InstallResult.Refused(problem.orEmpty())
+            } else {
+                extractSafely(it, target)
             }
         }
     }
 
+    private fun extractSafely(
+        input: InputStream,
+        target: Path,
+    ): InstallResult =
+        try {
+            InstallResult.Installed(extract(input, target))
+        } catch (e: IOException) {
+            InstallResult.Refused("Could not copy the template: ${e.message}")
+        }
+
     private fun targetProblem(target: Path): String? =
-        when {
-            Files.exists(target) && !Files.isDirectory(target) -> "$target is not a folder."
-            Files.isDirectory(target) && Files.list(target).use { it.findAny().isPresent } ->
-                "$target is not empty. Choose an empty folder."
-            else -> null
+        try {
+            when {
+                Files.exists(target) && !Files.isDirectory(target) -> "$target is not a folder."
+                Files.isDirectory(target) && Files.list(target).use { it.findAny().isPresent } ->
+                    "$target is not empty. Choose an empty folder."
+                else -> null
+            }
+        } catch (e: IOException) {
+            "Cannot read $target: ${e.message}"
         }
 
     private fun extract(

@@ -39,4 +39,10 @@ class TemplateInstallerTest {
         val dir = Files.createTempDirectory("loopback-none")
         assertIs<InstallResult.Refused>(TemplateInstaller.install("cobol", dir))
     }
+
+    @Test
+    fun refusesTargetThatIsAFile() {
+        val file = Files.createTempFile("loopback", ".txt")
+        assertIs<InstallResult.Refused>(TemplateInstaller.install("go", file))
+    }
 }

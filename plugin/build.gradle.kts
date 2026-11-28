@@ -65,26 +65,22 @@ sourceSets {
 }
 
 val templateLanguages = listOf("go", "rust")
+val templatesDir = layout.buildDirectory.dir("generated/templates")
 
-val zipTemplates by tasks.registering {
-    val outDir = layout.buildDirectory.dir("generated/templates")
-    val sources = templateLanguages.map { rootProject.layout.projectDirectory.dir("../content/template-$it") }
-    inputs.files(sources)
-    outputs.dir(outDir)
-    doLast {
-        templateLanguages.forEachIndexed { i, lang ->
-            ant.invokeMethod(
-                "zip",
-                mapOf(
-                    "destfile" to outDir.get().file("templates/template-$lang.zip").asFile,
-                    "basedir" to sources[i].asFile,
-                    "whenempty" to "fail",
-                ),
-            )
+val templateZips =
+    templateLanguages.map { lang ->
+        tasks.register<Zip>("zipTemplate${lang.replaceFirstChar { it.uppercase() }}") {
+            archiveFileName = "template-$lang.zip"
+            destinationDirectory = templatesDir.map { it.dir("templates") }
+            from(layout.projectDirectory.dir("../content/template-$lang")) {
+                exclude("target/**", ".git/**", ".DS_Store")
+            }
+            isReproducibleFileOrder = true
+            isPreserveFileTimestamps = false
         }
     }
-}
 
 tasks.processResources {
-    from(zipTemplates)
+    from(templatesDir)
+    dependsOn(templateZips)
 }
