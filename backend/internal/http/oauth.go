@@ -22,7 +22,8 @@ func (s *Server) StartOAuth(_ context.Context, req gen.StartOAuthRequestObject) 
 }
 
 // FinishOAuth checks the state, signs the provider account in and returns tokens.
-// Every answer except an unknown provider clears the state cookie, so a state works once.
+// Every answer after the state check clears the state cookie, so a state works once. A
+// forged or mismatching state keeps the cookie, so that it cannot delete the cookie of another flow.
 func (s *Server) FinishOAuth(ctx context.Context, req gen.FinishOAuthRequestObject) (gen.FinishOAuthResponseObject, error) {
 	var cookieNonce string
 	if req.Params.OauthState != nil {
@@ -37,7 +38,7 @@ func (s *Server) FinishOAuth(ctx context.Context, req gen.FinishOAuthRequestObje
 	case errors.Is(err, auth.ErrUnknownProvider):
 		return gen.FinishOAuth404JSONResponse{ErrorJSONResponse: gen.ErrorJSONResponse{Error: gen.NotFound}}, nil
 	case errors.Is(err, auth.ErrInvalidState):
-		return badRequest(gen.InvalidRequest), nil
+		return gen.FinishOAuth400JSONResponse{Body: gen.Error{Error: gen.InvalidRequest}}, nil
 	case errors.Is(err, auth.ErrOAuthExchange):
 		return badRequest(gen.InvalidGrant), nil
 	case errors.Is(err, auth.ErrEmailUnverified):

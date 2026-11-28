@@ -132,12 +132,11 @@ func TestOAuthEndpoints(t *testing.T) {
 		t.Errorf("identities of the unverified user = %d", n)
 	}
 
-	// A failed exchange clears the cookie as well.
-	rec = get("/api/v1/auth/oauth/github/callback?code=bad&state=x", cookie)
-	if rec.Code != nethttp.StatusBadRequest {
-		t.Fatalf("bad state: %d", rec.Code)
+	// A forged state keeps the cookie, so it cannot delete the cookie of another flow.
+	rec = get("/api/v1/auth/oauth/github/callback?code=good&state=x", cookie)
+	if rec.Code != nethttp.StatusBadRequest || len(rec.Header()["Set-Cookie"]) != 0 {
+		t.Fatalf("bad state: %d %v", rec.Code, rec.Header())
 	}
-	assertCleared(t, rec)
 }
 
 func assertCleared(t *testing.T, rec *httptest.ResponseRecorder) {
