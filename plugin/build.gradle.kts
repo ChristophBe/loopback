@@ -63,3 +63,28 @@ sourceSets {
         kotlin.srcDir("src/gen")
     }
 }
+
+val templateLanguages = listOf("go", "rust")
+
+val zipTemplates by tasks.registering {
+    val outDir = layout.buildDirectory.dir("generated/templates")
+    val sources = templateLanguages.map { rootProject.layout.projectDirectory.dir("../content/template-$it") }
+    inputs.files(sources)
+    outputs.dir(outDir)
+    doLast {
+        templateLanguages.forEachIndexed { i, lang ->
+            ant.invokeMethod(
+                "zip",
+                mapOf(
+                    "destfile" to outDir.get().file("templates/template-$lang.zip").asFile,
+                    "basedir" to sources[i].asFile,
+                    "whenempty" to "fail",
+                ),
+            )
+        }
+    }
+}
+
+tasks.processResources {
+    from(zipTemplates)
+}
