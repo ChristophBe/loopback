@@ -2,7 +2,7 @@
 COMPOSE := docker compose -f deploy/compose.yaml --env-file .env
 
 .PHONY: help gen check-gen lint lint-go lint-web lint-plugin lint-docs lint-specs lint-content \
-	test test-go test-web test-plugin test-content replay record-fixtures up down reset import
+	test test-go test-web test-plugin test-content replay record-fixtures up down reset import codegraph
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
@@ -78,3 +78,7 @@ reset: .env ## Delete the database and start again
 
 import: .env ## Re-run the content import
 	CONTENT_SHA="$$(git rev-parse HEAD)" $(COMPOSE) run --rm import
+
+codegraph: ## Build or update the CodeGraph code index
+	@command -v codegraph >/dev/null || (echo "codegraph is not installed"; exit 1)
+	@if [ -d .codegraph ]; then codegraph sync; else codegraph init -y; fi
