@@ -18,18 +18,8 @@ import (
 )
 
 func newServer() nethttp.Handler {
-	log := logrus.New()
-	log.SetOutput(io.Discard)
-	rules := gamification.Rules{XpPerLesson: 50, XpPerLevel: 500, DailyGoalLessons: 1}
-	svc, err := auth.New(nil, auth.Config{Secret: []byte(strings.Repeat("s", 32)), AccessTTL: time.Minute, RefreshTTL: time.Hour})
-	if err != nil {
-		panic(err)
-	}
-	e, err := http.New("test", rules, log, svc, nil)
-	if err != nil {
-		panic(err)
-	}
-	return e
+	srv, _ := newServerWithToken()
+	return srv
 }
 
 func newServerWithToken() (nethttp.Handler, string) {
@@ -39,7 +29,7 @@ func newServerWithToken() (nethttp.Handler, string) {
 	if err != nil {
 		panic(err)
 	}
-	e, err := http.New("test", gamification.Rules{}, log, svc, nil)
+	e, err := http.New("test", gamification.Rules{XpPerLesson: 50, XpPerLevel: 500, DailyGoalLessons: 1}, log, svc, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -129,6 +119,16 @@ func TestProgressEndpointsNotImplemented(t *testing.T) {
 				t.Fatalf("status = %d, want 501", rec.Code)
 			}
 		})
+	}
+}
+
+func TestProgressEndpointsRequireToken(t *testing.T) {
+	for _, path := range []string{"/api/v1/me", "/api/v1/me/progress"} {
+		rec := httptest.NewRecorder()
+		newServer().ServeHTTP(rec, httptest.NewRequest(nethttp.MethodGet, path, nil))
+		if rec.Code != nethttp.StatusUnauthorized {
+			t.Errorf("%s status = %d, want 401", path, rec.Code)
+		}
 	}
 }
 

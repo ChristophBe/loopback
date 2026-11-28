@@ -135,7 +135,7 @@ export interface paths {
         put?: never;
         /**
          * Report the check result of a lesson.
-         * @description The plugin reports the result of the check run. The server records the completion when the check passed. The Idempotency-Key header makes a retry safe: a replay with the same key and body returns 200 with the stored completion. The same key with a different body or for another lesson yields 409.
+         * @description The plugin reports the result of the check run. The server records the completion when the check passed. The Idempotency-Key header makes a retry safe: a replay with the same key and body returns 200 with the stored completion. The same key with a different body or for another lesson yields 409. Keys are scoped to the signed-in learner. A result with passed false is not a completion and yields 400.
          */
         post: operations["completeLesson"];
         delete?: never;
@@ -729,6 +729,7 @@ export interface operations {
                     "application/json": components["schemas"]["Completion"];
                 };
             };
+            400: components["responses"]["Error"];
             401: components["responses"]["Error"];
             404: components["responses"]["Error"];
             409: components["responses"]["Error"];
@@ -759,6 +760,7 @@ export interface operations {
                     "application/json": components["schemas"]["Attempt"];
                 };
             };
+            400: components["responses"]["Error"];
             401: components["responses"]["Error"];
             404: components["responses"]["Error"];
         };

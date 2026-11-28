@@ -148,7 +148,8 @@ paths:
         The plugin reports the result of the check run. The server records the completion when
         the check passed. The Idempotency-Key header makes a retry safe: a replay with the same
         key and body returns 200 with the stored completion. The same key with a different body
-        or for another lesson yields 409.
+        or for another lesson yields 409. Keys are scoped to the signed-in learner.
+        A result with passed false is not a completion and yields 400.
       tags: [progress]
       parameters:
         - $ref: "#/components/parameters/Id"
@@ -160,6 +161,8 @@ paths:
             schema:
               $ref: "#/components/schemas/CheckResult"
       responses:
+        "400":
+          $ref: "#/components/responses/Error"
         "200":
           description: A replay of an earlier request with the same Idempotency-Key.
           content:
@@ -193,6 +196,8 @@ paths:
             schema:
               $ref: "#/components/schemas/AttemptRequest"
       responses:
+        "400":
+          $ref: "#/components/responses/Error"
         "201":
           description: The attempt is recorded.
           content:
