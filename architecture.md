@@ -133,7 +133,7 @@ Kotlin, built with the Gradle IntelliJ Platform plugin, targeting GoLand, RustRo
 |---|---|---|---|
 | `db` | `postgres:16` with a named volume | 5432 | Data. A healthcheck (`pg_isready`) gates the services below. |
 | `migrate` | `backend` image, one-shot | none | Applies the Atlas migrations, then exits. |
-| `import` | `backend` image, one-shot | none | Runs `cmd/import` on `./content`, which is mounted read-only. It validates every file, upserts them idempotently in one transaction (unchanged rows are not written) and records the git SHA of the content as a `ContentVersion`: `git rev-parse HEAD`, or the `CONTENT_SHA` environment variable when git is unavailable (`make import` sets it). Re-run with `make import` after editing a lesson. |
+| `import` | `backend` image, one-shot | none | Runs `cmd/import` on `./content`, which is mounted read-only. It validates every file, upserts them idempotently in one transaction (unchanged rows are not written) and records the git SHA of the content as a `ContentVersion`: `git rev-parse HEAD`, or the `CONTENT_SHA` environment variable when git is unavailable (`make up` and `make import` set it). `make up` runs it before the API starts. Re-run with `make import` after editing a lesson. |
 | `api` | `backend` image, `air` live reload in the dev profile | 8080 | The REST API. Starts after `migrate` and `import` have completed successfully. |
 | `web` | `node` image running the Vite dev server | 5173 | The SPA with hot reload. Source mounted from `./web`. `/api` is proxied to `api:8080`, so the browser makes no cross-origin calls. |
 | `mailpit` | `axllent/mailpit` | 8025 (UI), 1025 (SMTP) | Catches magic-link emails. Open the UI to click the link. |
