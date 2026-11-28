@@ -217,6 +217,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DeviceAuthorization"
+  /auth/device/approve:
+    post:
+      operationId: approveDeviceCode
+      summary: Approve a device code as the signed-in user.
+      description: >-
+        The web app calls this after the learner enters the user code. The next poll of
+        POST /auth/token returns tokens for the learner.
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApproveDeviceRequest"
+      responses:
+        "204":
+          description: The code is approved.
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
   /auth/token:
     post:
       operationId: exchangeDeviceCode
@@ -344,6 +367,13 @@ components:
           type: integer
           minimum: 1
           description: Seconds until the device code expires.
+    ApproveDeviceRequest:
+      type: object
+      required: [userCode]
+      properties:
+        userCode:
+          type: string
+          description: The code shown by the plugin. Case and dashes are ignored.
     TokenRequest:
       type: object
       required: [deviceCode]
