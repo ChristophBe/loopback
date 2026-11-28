@@ -32,6 +32,24 @@ func newServer() nethttp.Handler {
 	return e
 }
 
+func newServerWithToken() (nethttp.Handler, string) {
+	log := logrus.New()
+	log.SetOutput(io.Discard)
+	svc, err := auth.New(nil, auth.Config{Secret: []byte(strings.Repeat("s", 32)), AccessTTL: time.Minute, RefreshTTL: time.Hour})
+	if err != nil {
+		panic(err)
+	}
+	e, err := http.New("test", gamification.Rules{}, log, svc, nil)
+	if err != nil {
+		panic(err)
+	}
+	token, _, err := svc.IssueAccessToken(1)
+	if err != nil {
+		panic(err)
+	}
+	return e, token
+}
+
 func TestHealth(t *testing.T) {
 	rec := httptest.NewRecorder()
 	newServer().ServeHTTP(rec, httptest.NewRequest(nethttp.MethodGet, "/api/v1/healthz", nil))
@@ -78,6 +96,34 @@ func TestAuthEndpointsNotImplemented(t *testing.T) {
 			req.Header.Set("Content-Type", "application/json")
 			rec := httptest.NewRecorder()
 			newServer().ServeHTTP(rec, req)
+
+			if rec.Code != nethttp.StatusNotImplemented {
+				t.Fatalf("status = %d, want 501", rec.Code)
+			}
+		})
+	}
+}
+
+func TestProgressEndpointsNotImplemented(t *testing.T) {
+	tests := []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{nethttp.MethodPost, "/api/v1/lessons/1/completions", `{"passed":true,"tests":[{"name":"TestX","status":"pass"}]}`},
+		{nethttp.MethodPost, "/api/v1/exercises/1/attempts", `{"answers":{}}`},
+		{nethttp.MethodGet, "/api/v1/me", ""},
+		{nethttp.MethodGet, "/api/v1/me/progress", ""},
+	}
+	srv, token := newServerWithToken()
+	for _, tt := range tests {
+		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Authorization", "Bearer "+token)
+			req.Header.Set("Idempotency-Key", "k1")
+			rec := httptest.NewRecorder()
+			srv.ServeHTTP(rec, req)
 
 			if rec.Code != nethttp.StatusNotImplemented {
 				t.Fatalf("status = %d, want 501", rec.Code)

@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v4"
@@ -134,6 +135,37 @@ type ApproveDeviceRequest struct {
 	UserCode string `json:"userCode"`
 }
 
+// Attempt defines model for Attempt.
+type Attempt struct {
+	CreatedAt  time.Time `json:"createdAt"`
+	ExerciseId int       `json:"exerciseId"`
+	Id         int       `json:"id"`
+}
+
+// AttemptRequest defines model for AttemptRequest.
+type AttemptRequest struct {
+	// Answers Type-specific answers (chosen options, known cards or checked findings).
+	Answers map[string]any `json:"answers"`
+}
+
+// CheckResult defines model for CheckResult.
+type CheckResult struct {
+	Passed bool `json:"passed"`
+	Tests  []struct {
+		DurationMs *int    `json:"durationMs,omitempty"`
+		Expected   *string `json:"expected,omitempty"`
+		Got        *string `json:"got,omitempty"`
+		Name       string  `json:"name"`
+		Status     any     `json:"status"`
+	} `json:"tests"`
+}
+
+// Completion defines model for Completion.
+type Completion struct {
+	CompletedAt time.Time `json:"completedAt"`
+	LessonId    int       `json:"lessonId"`
+}
+
 // Config defines model for Config.
 type Config struct {
 	Gamification GamificationRules `json:"gamification"`
@@ -146,6 +178,16 @@ type Course struct {
 	Language Language `json:"language"`
 	Project  string   `json:"project"`
 	Title    string   `json:"title"`
+}
+
+// CourseProgress defines model for CourseProgress.
+type CourseProgress struct {
+	CompletedLessons int `json:"completedLessons"`
+	CourseId         int `json:"courseId"`
+
+	// NextLessonId The next lesson to do, or null when the course is finished.
+	NextLessonId *int `json:"nextLessonId"`
+	TotalLessons int  `json:"totalLessons"`
 }
 
 // DeviceAuthorization defines model for DeviceAuthorization.
@@ -244,8 +286,22 @@ type MagicLinkVerifyRequest struct {
 	Token string `json:"token"`
 }
 
+// Me defines model for Me.
+type Me struct {
+	Email openapi_types.Email `json:"email"`
+	Id    int                 `json:"id"`
+}
+
 // OAuthProvider defines model for OAuthProvider.
 type OAuthProvider string
+
+// Progress defines model for Progress.
+type Progress struct {
+	CompletedLessonIds []int `json:"completedLessonIds"`
+
+	// Courses The position of the learner in every course they started.
+	Courses []CourseProgress `json:"courses"`
+}
 
 // RefreshRequest defines model for RefreshRequest.
 type RefreshRequest struct {
@@ -268,6 +324,9 @@ type TokenResponse struct {
 
 // Id defines model for Id.
 type Id = int
+
+// IdempotencyKey defines model for IdempotencyKey.
+type IdempotencyKey = string
 
 // Tokens defines model for Tokens.
 type Tokens = TokenResponse
@@ -293,6 +352,12 @@ type ListExercisesParams struct {
 	Type *ExerciseType `form:"type,omitempty" json:"type,omitempty"`
 }
 
+// CompleteLessonParams defines parameters for CompleteLesson.
+type CompleteLessonParams struct {
+	// IdempotencyKey Client-generated unique key (a UUID) that makes a retry of the request safe.
+	IdempotencyKey IdempotencyKey `json:"Idempotency-Key"`
+}
+
 // ApproveDeviceCodeJSONRequestBody defines body for ApproveDeviceCode for application/json ContentType.
 type ApproveDeviceCodeJSONRequestBody = ApproveDeviceRequest
 
@@ -307,6 +372,12 @@ type RefreshTokensJSONRequestBody = RefreshRequest
 
 // ExchangeDeviceCodeJSONRequestBody defines body for ExchangeDeviceCode for application/json ContentType.
 type ExchangeDeviceCodeJSONRequestBody = TokenRequest
+
+// CreateExerciseAttemptJSONRequestBody defines body for CreateExerciseAttempt for application/json ContentType.
+type CreateExerciseAttemptJSONRequestBody = AttemptRequest
+
+// CompleteLessonJSONRequestBody defines body for CompleteLesson for application/json ContentType.
+type CompleteLessonJSONRequestBody = CheckResult
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -346,12 +417,24 @@ type ServerInterface interface {
 	// ListExercises List the exercises.
 	// (GET /exercises)
 	ListExercises(ctx echo.Context, params ListExercisesParams) error
+	// CreateExerciseAttempt Report an attempt at a quiz, flashcard deck or review.
+	// (POST /exercises/{id}/attempts)
+	CreateExerciseAttempt(ctx echo.Context, id Id) error
 	// GetHealth Report whether the API is up.
 	// (GET /healthz)
 	GetHealth(ctx echo.Context) error
 	// GetLesson Return one lesson.
 	// (GET /lessons/{id})
 	GetLesson(ctx echo.Context, id Id) error
+	// CompleteLesson Report the check result of a lesson.
+	// (POST /lessons/{id}/completions)
+	CompleteLesson(ctx echo.Context, id Id, params CompleteLessonParams) error
+	// GetMe Return the signed-in learner.
+	// (GET /me)
+	GetMe(ctx echo.Context) error
+	// GetMyProgress Return the progress of the signed-in learner.
+	// (GET /me/progress)
+	GetMyProgress(ctx echo.Context) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -531,6 +614,22 @@ func (w *ServerInterfaceWrapper) ListExercises(ctx echo.Context) error {
 	return err
 }
 
+// CreateExerciseAttempt converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateExerciseAttempt(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CreateExerciseAttempt(ctx, id)
+	return err
+}
+
 // GetHealth converts echo context to params.
 func (w *ServerInterfaceWrapper) GetHealth(ctx echo.Context) error {
 	var err error
@@ -553,6 +652,62 @@ func (w *ServerInterfaceWrapper) GetLesson(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.GetLesson(ctx, id)
+	return err
+}
+
+// CompleteLesson converts echo context to params.
+func (w *ServerInterfaceWrapper) CompleteLesson(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", ctx.Param("id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter id: %s", err))
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CompleteLessonParams
+
+	headers := ctx.Request().Header
+	// ------------- Required header parameter "Idempotency-Key" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("Idempotency-Key")]; found {
+		var IdempotencyKey IdempotencyKey
+		n := len(valueList)
+		if n != 1 {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Expected one value for Idempotency-Key, got %d", n))
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "Idempotency-Key", valueList[0], &IdempotencyKey, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter Idempotency-Key: %s", err))
+		}
+
+		params.IdempotencyKey = IdempotencyKey
+	} else {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Header parameter Idempotency-Key is required, but not found"))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CompleteLesson(ctx, id, params)
+	return err
+}
+
+// GetMe converts echo context to params.
+func (w *ServerInterfaceWrapper) GetMe(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetMe(ctx)
+	return err
+}
+
+// GetMyProgress converts echo context to params.
+func (w *ServerInterfaceWrapper) GetMyProgress(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetMyProgress(ctx)
 	return err
 }
 
@@ -609,6 +764,10 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/courses/:id/lessons", wrapper.ListCourseLessons, options.OperationMiddlewares["listCourseLessons"]...)
 	router.GET(options.BaseURL+"/lessons/:id", wrapper.GetLesson, options.OperationMiddlewares["getLesson"]...)
 	router.GET(options.BaseURL+"/exercises", wrapper.ListExercises, options.OperationMiddlewares["listExercises"]...)
+	router.POST(options.BaseURL+"/lessons/:id/completions", wrapper.CompleteLesson, options.OperationMiddlewares["completeLesson"]...)
+	router.POST(options.BaseURL+"/exercises/:id/attempts", wrapper.CreateExerciseAttempt, options.OperationMiddlewares["createExerciseAttempt"]...)
+	router.GET(options.BaseURL+"/me", wrapper.GetMe, options.OperationMiddlewares["getMe"]...)
+	router.GET(options.BaseURL+"/me/progress", wrapper.GetMyProgress, options.OperationMiddlewares["getMyProgress"]...)
 	router.POST(options.BaseURL+"/auth/magic-link", wrapper.RequestMagicLink, options.OperationMiddlewares["requestMagicLink"]...)
 	router.POST(options.BaseURL+"/auth/magic-link/verify", wrapper.VerifyMagicLink, options.OperationMiddlewares["verifyMagicLink"]...)
 	router.GET(options.BaseURL+"/auth/oauth/:provider", wrapper.StartOAuth, options.OperationMiddlewares["startOAuth"]...)
@@ -1130,6 +1289,57 @@ func (response ListExercises401JSONResponse) VisitListExercisesResponse(w http.R
 	return err
 }
 
+type CreateExerciseAttemptRequestObject struct {
+	Id   Id `json:"id"`
+	Body *CreateExerciseAttemptJSONRequestBody
+}
+
+type CreateExerciseAttemptResponseObject interface {
+	VisitCreateExerciseAttemptResponse(w http.ResponseWriter) error
+}
+
+type CreateExerciseAttempt201JSONResponse Attempt
+
+func (response CreateExerciseAttempt201JSONResponse) VisitCreateExerciseAttemptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExerciseAttempt401JSONResponse struct{ ErrorJSONResponse }
+
+func (response CreateExerciseAttempt401JSONResponse) VisitCreateExerciseAttemptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response.ErrorJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateExerciseAttempt404JSONResponse Error
+
+func (response CreateExerciseAttempt404JSONResponse) VisitCreateExerciseAttemptResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetHealthRequestObject struct {
 }
 
@@ -1201,6 +1411,156 @@ func (response GetLesson404JSONResponse) VisitGetLessonResponse(w http.ResponseW
 	return err
 }
 
+type CompleteLessonRequestObject struct {
+	Id     Id `json:"id"`
+	Params CompleteLessonParams
+	Body   *CompleteLessonJSONRequestBody
+}
+
+type CompleteLessonResponseObject interface {
+	VisitCompleteLessonResponse(w http.ResponseWriter) error
+}
+
+type CompleteLesson200JSONResponse Completion
+
+func (response CompleteLesson200JSONResponse) VisitCompleteLessonResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteLesson201JSONResponse Completion
+
+func (response CompleteLesson201JSONResponse) VisitCompleteLessonResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteLesson401JSONResponse struct{ ErrorJSONResponse }
+
+func (response CompleteLesson401JSONResponse) VisitCompleteLessonResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response.ErrorJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteLesson404JSONResponse Error
+
+func (response CompleteLesson404JSONResponse) VisitCompleteLessonResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompleteLesson409JSONResponse Error
+
+func (response CompleteLesson409JSONResponse) VisitCompleteLessonResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMeRequestObject struct {
+}
+
+type GetMeResponseObject interface {
+	VisitGetMeResponse(w http.ResponseWriter) error
+}
+
+type GetMe200JSONResponse Me
+
+func (response GetMe200JSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMe401JSONResponse struct{ ErrorJSONResponse }
+
+func (response GetMe401JSONResponse) VisitGetMeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response.ErrorJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMyProgressRequestObject struct {
+}
+
+type GetMyProgressResponseObject interface {
+	VisitGetMyProgressResponse(w http.ResponseWriter) error
+}
+
+type GetMyProgress200JSONResponse Progress
+
+func (response GetMyProgress200JSONResponse) VisitGetMyProgressResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMyProgress401JSONResponse struct{ ErrorJSONResponse }
+
+func (response GetMyProgress401JSONResponse) VisitGetMyProgressResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response.ErrorJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// StartDeviceAuthorization Start the device-code sign-in.
@@ -1239,12 +1599,24 @@ type StrictServerInterface interface {
 	// ListExercises List the exercises.
 	// (GET /exercises)
 	ListExercises(ctx context.Context, request ListExercisesRequestObject) (ListExercisesResponseObject, error)
+	// CreateExerciseAttempt Report an attempt at a quiz, flashcard deck or review.
+	// (POST /exercises/{id}/attempts)
+	CreateExerciseAttempt(ctx context.Context, request CreateExerciseAttemptRequestObject) (CreateExerciseAttemptResponseObject, error)
 	// GetHealth Report whether the API is up.
 	// (GET /healthz)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
 	// GetLesson Return one lesson.
 	// (GET /lessons/{id})
 	GetLesson(ctx context.Context, request GetLessonRequestObject) (GetLessonResponseObject, error)
+	// CompleteLesson Report the check result of a lesson.
+	// (POST /lessons/{id}/completions)
+	CompleteLesson(ctx context.Context, request CompleteLessonRequestObject) (CompleteLessonResponseObject, error)
+	// GetMe Return the signed-in learner.
+	// (GET /me)
+	GetMe(ctx context.Context, request GetMeRequestObject) (GetMeResponseObject, error)
+	// GetMyProgress Return the progress of the signed-in learner.
+	// (GET /me/progress)
+	GetMyProgress(ctx context.Context, request GetMyProgressRequestObject) (GetMyProgressResponseObject, error)
 }
 
 // StrictHandlerFunc and StrictMiddlewareFunc are type aliases rather than
@@ -1662,6 +2034,54 @@ func (sh *strictHandler) ListExercises(ctx echo.Context, params ListExercisesPar
 	return nil
 }
 
+// CreateExerciseAttempt operation middleware
+func (sh *strictHandler) CreateExerciseAttempt(ctx echo.Context, id Id) error {
+	var request CreateExerciseAttemptRequestObject
+
+	request.Id = id
+
+	var body CreateExerciseAttemptJSONRequestBody
+	var err error
+	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// A request validator built on kin-openapi's openapi3filter with
+		// KeepValidatedValue leaves the value it validated on the body. Bind
+		// that value, matching member names exactly, so the handler receives
+		// what was validated instead of a second, case-insensitive decode.
+		// Otherwise bind only the request body, so that path and query
+		// parameters are not also bound into the body struct.
+		if vb, ok := ctx.Request().Body.(interface{ ValidatedValue() any }); !ok || runtime.BindJSONValue(vb.ValidatedValue(), &body) != nil {
+			err = binder.BindBody(ctx, &body)
+		}
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding and
+		// the binder may do more than decode (for example call ctx.Validate).
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request any) (any, error) {
+		return sh.ssi.CreateExerciseAttempt(ctx.Request().Context(), request.(CreateExerciseAttemptRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateExerciseAttempt")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateExerciseAttemptResponseObject); ok {
+		return validResponse.VisitCreateExerciseAttemptResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // GetHealth operation middleware
 func (sh *strictHandler) GetHealth(ctx echo.Context) error {
 	var request GetHealthRequestObject
@@ -1710,63 +2130,173 @@ func (sh *strictHandler) GetLesson(ctx echo.Context, id Id) error {
 	return nil
 }
 
+// CompleteLesson operation middleware
+func (sh *strictHandler) CompleteLesson(ctx echo.Context, id Id, params CompleteLessonParams) error {
+	var request CompleteLessonRequestObject
+
+	request.Id = id
+	request.Params = params
+
+	var body CompleteLessonJSONRequestBody
+	var err error
+	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// A request validator built on kin-openapi's openapi3filter with
+		// KeepValidatedValue leaves the value it validated on the body. Bind
+		// that value, matching member names exactly, so the handler receives
+		// what was validated instead of a second, case-insensitive decode.
+		// Otherwise bind only the request body, so that path and query
+		// parameters are not also bound into the body struct.
+		if vb, ok := ctx.Request().Body.(interface{ ValidatedValue() any }); !ok || runtime.BindJSONValue(vb.ValidatedValue(), &body) != nil {
+			err = binder.BindBody(ctx, &body)
+		}
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding and
+		// the binder may do more than decode (for example call ctx.Validate).
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request any) (any, error) {
+		return sh.ssi.CompleteLesson(ctx.Request().Context(), request.(CompleteLessonRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CompleteLesson")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CompleteLessonResponseObject); ok {
+		return validResponse.VisitCompleteLessonResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetMe operation middleware
+func (sh *strictHandler) GetMe(ctx echo.Context) error {
+	var request GetMeRequestObject
+
+	handler := func(ctx echo.Context, request any) (any, error) {
+		return sh.ssi.GetMe(ctx.Request().Context(), request.(GetMeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMe")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetMeResponseObject); ok {
+		return validResponse.VisitGetMeResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetMyProgress operation middleware
+func (sh *strictHandler) GetMyProgress(ctx echo.Context) error {
+	var request GetMyProgressRequestObject
+
+	handler := func(ctx echo.Context, request any) (any, error) {
+		return sh.ssi.GetMyProgress(ctx.Request().Context(), request.(GetMyProgressRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMyProgress")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(GetMyProgressResponseObject); ok {
+		return validResponse.VisitGetMyProgressResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // Base64 encoded, compressed with deflate, json marshaled OpenAPI spec.
 // Stored as a slice of fixed-width chunks rather than one concatenated
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"/w==",
+	"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",
+	"wZzmqhS71P7iZiGb0WJ3Hpa57z/f/28AAAD//w==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,
