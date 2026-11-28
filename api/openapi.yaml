@@ -11,6 +11,8 @@ tags:
     description: Operational endpoints.
   - name: gamification
     description: XP, levels, streaks and the daily goal.
+  - name: content
+    description: Courses, lessons and exercises imported from the content repository.
   - name: auth
     description: Sign-in with magic link, OAuth and the device-code flow, and token refresh.
 servers:
@@ -46,6 +48,96 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Config"
+  /courses:
+    get:
+      operationId: listCourses
+      summary: List the courses.
+      description: Returns every course, ordered by language and project.
+      tags: [content]
+      responses:
+        "200":
+          description: The courses.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Course"
+        "401":
+          $ref: "#/components/responses/Error"
+  /courses/{id}/lessons:
+    get:
+      operationId: listCourseLessons
+      summary: List the lessons of a course.
+      description: Returns the lessons of the course in path order, with starter files, tests, hints and owned files.
+      tags: [content]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: The lessons of the course.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Lesson"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /lessons/{id}:
+    get:
+      operationId: getLesson
+      summary: Return one lesson.
+      description: Returns the lesson with starter files, tests, hints and owned files.
+      tags: [content]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: The lesson.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lesson"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /exercises:
+    get:
+      operationId: listExercises
+      summary: List the exercises.
+      description: Returns quizzes, flashcard decks and reviews, optionally filtered by course or type.
+      tags: [content]
+      parameters:
+        - name: courseId
+          in: query
+          required: false
+          description: Only exercises of this course.
+          schema:
+            type: integer
+            minimum: 1
+        - name: type
+          in: query
+          required: false
+          description: Only exercises of this type.
+          schema:
+            $ref: "#/components/schemas/ExerciseType"
+      responses:
+        "200":
+          description: The exercises.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Exercise"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
   /auth/magic-link:
     post:
       operationId: requestMagicLink
@@ -150,6 +242,15 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: Access token from POST /auth/token or POST /auth/refresh.
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      description: Numeric id.
+      schema:
+        type: integer
+        minimum: 1
   responses:
     Error:
       description: The request failed.
@@ -238,6 +339,89 @@ components:
           type: integer
           minimum: 1
           description: Seconds until the access token expires.
+    Language:
+      type: string
+      enum: [go, rust]
+    Course:
+      type: object
+      required: [id, language, project, title]
+      properties:
+        id:
+          type: integer
+        language:
+          $ref: "#/components/schemas/Language"
+        project:
+          type: string
+        title:
+          type: string
+    Lesson:
+      type: object
+      required: [id, courseId, slug, order, title, minutes, xp, body, ownedFiles, starterFiles, testFiles, hints, failureExplanations]
+      properties:
+        id:
+          type: integer
+        courseId:
+          type: integer
+        slug:
+          type: string
+        order:
+          type: integer
+          minimum: 1
+        title:
+          type: string
+        minutes:
+          type: integer
+          minimum: 1
+        xp:
+          type: integer
+          minimum: 1
+        body:
+          type: string
+          description: Markdown body of the lesson.
+        ownedFiles:
+          type: array
+          items:
+            type: string
+        starterFiles:
+          type: object
+          description: Maps a path relative to the learner's project to the file content.
+          additionalProperties:
+            type: string
+        testFiles:
+          type: object
+          description: Maps a path relative to the learner's project to the file content.
+          additionalProperties:
+            type: string
+        hints:
+          type: array
+          items:
+            type: string
+        failureExplanations:
+          type: object
+          description: Maps a test name to the explanation shown when it fails.
+          additionalProperties:
+            type: string
+    ExerciseType:
+      type: string
+      enum: [quiz, flashcard, review]
+    Exercise:
+      type: object
+      required: [id, courseId, slug, type, title, payload]
+      properties:
+        id:
+          type: integer
+        courseId:
+          type: integer
+        slug:
+          type: string
+        type:
+          $ref: "#/components/schemas/ExerciseType"
+        title:
+          type: string
+        payload:
+          type: object
+          description: Type-specific content (questions, cards or findings), as in api/schemas.
+          additionalProperties: true
     Health:
       type: object
       required: [status]

@@ -44,6 +44,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the courses.
+         * @description Returns every course, ordered by language and project.
+         */
+        get: operations["listCourses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{id}/lessons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the lessons of a course.
+         * @description Returns the lessons of the course in path order, with starter files, tests, hints and owned files.
+         */
+        get: operations["listCourseLessons"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lessons/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return one lesson.
+         * @description Returns the lesson with starter files, tests, hints and owned files.
+         */
+        get: operations["getLesson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exercises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the exercises.
+         * @description Returns quizzes, flashcard decks and reviews, optionally filtered by course or type.
+         */
+        get: operations["listExercises"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/magic-link": {
         parameters: {
             query?: never;
@@ -187,6 +267,52 @@ export interface components {
             /** @description Seconds until the access token expires. */
             expiresIn: number;
         };
+        /** @enum {string} */
+        Language: "go" | "rust";
+        Course: {
+            id: number;
+            language: components["schemas"]["Language"];
+            project: string;
+            title: string;
+        };
+        Lesson: {
+            id: number;
+            courseId: number;
+            slug: string;
+            order: number;
+            title: string;
+            minutes: number;
+            xp: number;
+            /** @description Markdown body of the lesson. */
+            body: string;
+            ownedFiles: string[];
+            /** @description Maps a path relative to the learner's project to the file content. */
+            starterFiles: {
+                [key: string]: string;
+            };
+            /** @description Maps a path relative to the learner's project to the file content. */
+            testFiles: {
+                [key: string]: string;
+            };
+            hints: string[];
+            /** @description Maps a test name to the explanation shown when it fails. */
+            failureExplanations: {
+                [key: string]: string;
+            };
+        };
+        /** @enum {string} */
+        ExerciseType: "quiz" | "flashcard" | "review";
+        Exercise: {
+            id: number;
+            courseId: number;
+            slug: string;
+            type: components["schemas"]["ExerciseType"];
+            title: string;
+            /** @description Type-specific content (questions, cards or findings), as in api/schemas. */
+            payload: {
+                [key: string]: unknown;
+            };
+        };
         Health: {
             /** @enum {string} */
             status: "ok";
@@ -234,7 +360,10 @@ export interface components {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        /** @description Numeric id. */
+        Id: number;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -279,6 +408,104 @@ export interface operations {
                     "application/json": components["schemas"]["Config"];
                 };
             };
+        };
+    };
+    listCourses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The courses. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Course"][];
+                };
+            };
+            401: components["responses"]["Error"];
+        };
+    };
+    listCourseLessons: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Numeric id. */
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The lessons of the course. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lesson"][];
+                };
+            };
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    getLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Numeric id. */
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The lesson. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lesson"];
+                };
+            };
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    listExercises: {
+        parameters: {
+            query?: {
+                /** @description Only exercises of this course. */
+                courseId?: number;
+                /** @description Only exercises of this type. */
+                type?: components["schemas"]["ExerciseType"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The exercises. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Exercise"][];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
         };
     };
     requestMagicLink: {
