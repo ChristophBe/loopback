@@ -63,3 +63,24 @@ sourceSets {
         kotlin.srcDir("src/gen")
     }
 }
+
+val templateLanguages = listOf("go", "rust")
+val templatesDir = layout.buildDirectory.dir("generated/templates")
+
+val templateZips =
+    templateLanguages.map { lang ->
+        tasks.register<Zip>("zipTemplate${lang.replaceFirstChar { it.uppercase() }}") {
+            archiveFileName = "template-$lang.zip"
+            destinationDirectory = templatesDir.map { it.dir("templates") }
+            from(layout.projectDirectory.dir("../content/template-$lang")) {
+                exclude("target/**", ".git/**", ".DS_Store")
+            }
+            isReproducibleFileOrder = true
+            isPreserveFileTimestamps = false
+        }
+    }
+
+tasks.processResources {
+    from(templatesDir)
+    dependsOn(templateZips)
+}
