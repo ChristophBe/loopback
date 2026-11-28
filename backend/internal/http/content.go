@@ -12,7 +12,7 @@ import (
 
 // ListCourses returns every course, ordered by language and project.
 func (s *Server) ListCourses(ctx context.Context, _ gen.ListCoursesRequestObject) (gen.ListCoursesResponseObject, error) {
-	rows, err := s.db.Course.Query().Order(ent.Asc(course.FieldLanguage), ent.Asc(course.FieldProject)).All(ctx)
+	rows, err := s.db.Course.Query().Order(ent.Asc(course.FieldLanguage), ent.Asc(course.FieldProject), ent.Asc(course.FieldID)).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (s *Server) ListCourseLessons(ctx context.Context, req gen.ListCourseLesson
 	if !exists {
 		return gen.ListCourseLessons404JSONResponse{Error: gen.NotFound}, nil
 	}
-	rows, err := s.db.Lesson.Query().Where(lesson.HasCourseWith(course.ID(req.Id))).Order(ent.Asc(lesson.FieldOrder)).All(ctx)
+	rows, err := s.db.Lesson.Query().Where(lesson.HasCourseWith(course.ID(req.Id))).Order(ent.Asc(lesson.FieldOrder), ent.Asc(lesson.FieldID)).All(ctx)
 	if err != nil {
 		return nil, err
 	}
