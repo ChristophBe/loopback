@@ -71,7 +71,6 @@ func TestAuthEndpointsNotImplemented(t *testing.T) {
 		body   string
 	}{
 		{nethttp.MethodPost, "/api/v1/auth/magic-link", `{"email":"a@example.com"}`},
-		{nethttp.MethodGet, "/api/v1/auth/oauth/github", ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.method+" "+tt.path, func(t *testing.T) {

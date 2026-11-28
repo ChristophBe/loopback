@@ -12,6 +12,7 @@ require (
 	github.com/oapi-codegen/oapi-codegen/v2 v2.9.0
 	github.com/oapi-codegen/runtime v1.9.1
 	github.com/sirupsen/logrus v1.10.2
+	golang.org/x/oauth2 v0.37.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

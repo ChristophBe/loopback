@@ -51,6 +51,8 @@ func main() {
 
 	authSvc.SetVerificationURI(env("DEVICE_VERIFICATION_URI", auth.DefaultVerificationURI))
 
+	authSvc.ConfigureOAuth(auth.LoadOAuthConfig(os.Getenv))
+
 	magicLinks, err := newMagicLinks(authSvc)
 	if err != nil {
 		log.WithError(err).Fatal("create magic-link sign-in")

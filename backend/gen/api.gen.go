@@ -272,6 +272,18 @@ type Id = int
 // Tokens defines model for Tokens.
 type Tokens = TokenResponse
 
+// FinishOAuthParams defines parameters for FinishOAuth.
+type FinishOAuthParams struct {
+	// Code The authorization code from the provider.
+	Code string `form:"code" json:"code"`
+
+	// State The state from the authorization redirect.
+	State string `form:"state" json:"state"`
+
+	// OauthState The cookie that GET /auth/oauth/{provider} set.
+	OauthState *string `form:"oauth_state,omitempty" json:"oauth_state,omitempty"`
+}
+
 // ListExercisesParams defines parameters for ListExercises.
 type ListExercisesParams struct {
 	// CourseId Only exercises of this course.
@@ -313,6 +325,9 @@ type ServerInterface interface {
 	// StartOAuth Start the OAuth sign-in with a provider.
 	// (GET /auth/oauth/{provider})
 	StartOAuth(ctx echo.Context, provider OAuthProvider) error
+	// FinishOAuth Finish the OAuth sign-in with a provider.
+	// (GET /auth/oauth/{provider}/callback)
+	FinishOAuth(ctx echo.Context, provider OAuthProvider, params FinishOAuthParams) error
 	// RefreshTokens Exchange a refresh token for new tokens.
 	// (POST /auth/refresh)
 	RefreshTokens(ctx echo.Context) error
@@ -393,6 +408,49 @@ func (w *ServerInterfaceWrapper) StartOAuth(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.StartOAuth(ctx, provider)
+	return err
+}
+
+// FinishOAuth converts echo context to params.
+func (w *ServerInterfaceWrapper) FinishOAuth(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "provider" -------------
+	var provider OAuthProvider
+
+	err = runtime.BindStyledParameterWithOptions("simple", "provider", ctx.Param("provider"), &provider, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter provider: %s", err))
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params FinishOAuthParams
+	// ------------- Required query parameter "code" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "code", ctx.QueryParams(), &params.Code, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter code: %s", err))
+	}
+
+	// ------------- Required query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "state", ctx.QueryParams(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter state: %s", err))
+	}
+
+	if cookie, err := ctx.Cookie("oauth_state"); err == nil {
+
+		var value string
+		err = runtime.BindStyledParameterWithOptions("simple", "oauth_state", cookie.Value, &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationCookie, Explode: true, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter oauth_state: %s", err))
+		}
+		params.OauthState = &value
+
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.FinishOAuth(ctx, provider, params)
 	return err
 }
 
@@ -554,6 +612,7 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.POST(options.BaseURL+"/auth/magic-link", wrapper.RequestMagicLink, options.OperationMiddlewares["requestMagicLink"]...)
 	router.POST(options.BaseURL+"/auth/magic-link/verify", wrapper.VerifyMagicLink, options.OperationMiddlewares["verifyMagicLink"]...)
 	router.GET(options.BaseURL+"/auth/oauth/:provider", wrapper.StartOAuth, options.OperationMiddlewares["startOAuth"]...)
+	router.GET(options.BaseURL+"/auth/oauth/:provider/callback", wrapper.FinishOAuth, options.OperationMiddlewares["finishOAuth"]...)
 	router.POST(options.BaseURL+"/auth/device", wrapper.StartDeviceAuthorization, options.OperationMiddlewares["startDeviceAuthorization"]...)
 	router.POST(options.BaseURL+"/auth/device/approve", wrapper.ApproveDeviceCode, options.OperationMiddlewares["approveDeviceCode"]...)
 	router.POST(options.BaseURL+"/auth/token", wrapper.ExchangeDeviceCode, options.OperationMiddlewares["exchangeDeviceCode"]...)
@@ -733,7 +792,8 @@ type StartOAuthResponseObject interface {
 }
 
 type StartOAuth302ResponseHeaders struct {
-	Location *string
+	Location  *string
+	SetCookie *string
 }
 
 type StartOAuth302Response struct {
@@ -750,6 +810,15 @@ func (response StartOAuth302Response) VisitStartOAuthResponse(w http.ResponseWri
 			w.Header().Set("Location", v)
 		}
 	}
+	if response.Headers.SetCookie != nil {
+		{
+			v, err := runtime.StyleParamWithOptions("simple", false, "Set-Cookie", *response.Headers.SetCookie, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return fmt.Errorf("error styling response header Set-Cookie: %w", err)
+			}
+			w.Header().Set("Set-Cookie", v)
+		}
+	}
 	w.WriteHeader(302)
 	return nil
 }
@@ -760,6 +829,57 @@ func (response StartOAuth404JSONResponse) VisitStartOAuthResponse(w http.Respons
 
 	var buf bytes.Buffer
 	if err := runtime.JSONMarshalWrite(&buf, response.ErrorJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type FinishOAuthRequestObject struct {
+	Provider OAuthProvider `json:"provider"`
+	Params   FinishOAuthParams
+}
+
+type FinishOAuthResponseObject interface {
+	VisitFinishOAuthResponse(w http.ResponseWriter) error
+}
+
+type FinishOAuth200JSONResponse struct{ TokensJSONResponse }
+
+func (response FinishOAuth200JSONResponse) VisitFinishOAuthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response.TokensJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type FinishOAuth400JSONResponse struct{ ErrorJSONResponse }
+
+func (response FinishOAuth400JSONResponse) VisitFinishOAuthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response.ErrorJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type FinishOAuth404JSONResponse Error
+
+func (response FinishOAuth404JSONResponse) VisitFinishOAuthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response); err != nil {
 		return err
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -1098,6 +1218,9 @@ type StrictServerInterface interface {
 	// StartOAuth Start the OAuth sign-in with a provider.
 	// (GET /auth/oauth/{provider})
 	StartOAuth(ctx context.Context, request StartOAuthRequestObject) (StartOAuthResponseObject, error)
+	// FinishOAuth Finish the OAuth sign-in with a provider.
+	// (GET /auth/oauth/{provider}/callback)
+	FinishOAuth(ctx context.Context, request FinishOAuthRequestObject) (FinishOAuthResponseObject, error)
 	// RefreshTokens Exchange a refresh token for new tokens.
 	// (POST /auth/refresh)
 	RefreshTokens(ctx context.Context, request RefreshTokensRequestObject) (RefreshTokensResponseObject, error)
@@ -1319,6 +1442,32 @@ func (sh *strictHandler) StartOAuth(ctx echo.Context, provider OAuthProvider) er
 		return err
 	} else if validResponse, ok := response.(StartOAuthResponseObject); ok {
 		return validResponse.VisitStartOAuthResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// FinishOAuth operation middleware
+func (sh *strictHandler) FinishOAuth(ctx echo.Context, provider OAuthProvider, params FinishOAuthParams) error {
+	var request FinishOAuthRequestObject
+
+	request.Provider = provider
+	request.Params = params
+
+	handler := func(ctx echo.Context, request any) (any, error) {
+		return sh.ssi.FinishOAuth(ctx.Request().Context(), request.(FinishOAuthRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "FinishOAuth")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(FinishOAuthResponseObject); ok {
+		return validResponse.VisitFinishOAuthResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -1566,52 +1715,58 @@ func (sh *strictHandler) GetLesson(ctx echo.Context, id Id) error {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
+	"/w==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

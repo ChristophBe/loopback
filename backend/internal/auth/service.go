@@ -25,6 +25,8 @@ type Service struct {
 
 	devices         DeviceStore
 	verificationURI string
+	// oauth is set by ConfigureOAuth.
+	oauth OAuthConfig
 }
 
 // New returns a Service. db may be nil when only access tokens are verified.

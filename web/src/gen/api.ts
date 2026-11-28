@@ -173,9 +173,29 @@ export interface paths {
         };
         /**
          * Start the OAuth sign-in with a provider.
-         * @description Redirects the browser to the provider's authorization page.
+         * @description Redirects the browser to the provider's authorization page and sets the short-lived oauth_state cookie that the callback checks against the state parameter. An unknown or unconfigured provider yields 404.
          */
         get: operations["startOAuth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/oauth/{provider}/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Finish the OAuth sign-in with a provider.
+         * @description The provider redirects the browser here. The state parameter must match the signed state of the flow and the oauth_state cookie. The response creates or links the Identity and returns a new token pair. A provider account is linked to the user with the same verified email, or a new user is created.
+         */
+        get: operations["finishOAuth"];
         put?: never;
         post?: never;
         delete?: never;
@@ -614,10 +634,37 @@ export interface operations {
                 headers: {
                     /** @description The authorization URL of the provider. */
                     Location?: string;
+                    /** @description The oauth_state cookie (HttpOnly, SameSite=Lax) that binds the flow to this browser. */
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
             };
+            404: components["responses"]["Error"];
+        };
+    };
+    finishOAuth: {
+        parameters: {
+            query: {
+                /** @description The authorization code from the provider. */
+                code: string;
+                /** @description The state from the authorization redirect. */
+                state: string;
+            };
+            header?: never;
+            path: {
+                /** @description The OAuth provider. */
+                provider: components["schemas"]["OAuthProvider"];
+            };
+            cookie?: {
+                /** @description The cookie that GET /auth/oauth/{provider} set. */
+                oauth_state?: string;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["Tokens"];
+            400: components["responses"]["Error"];
             404: components["responses"]["Error"];
         };
     };

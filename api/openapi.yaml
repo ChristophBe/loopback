@@ -182,7 +182,10 @@ paths:
     get:
       operationId: startOAuth
       summary: Start the OAuth sign-in with a provider.
-      description: Redirects the browser to the provider's authorization page.
+      description: >-
+        Redirects the browser to the provider's authorization page and sets the short-lived
+        oauth_state cookie that the callback checks against the state parameter.
+        An unknown or unconfigured provider yields 404.
       tags: [auth]
       security: []
       parameters:
@@ -201,6 +204,53 @@ paths:
               schema:
                 type: string
                 format: uri
+            Set-Cookie:
+              description: The oauth_state cookie (HttpOnly, SameSite=Lax) that binds the flow to this browser.
+              schema:
+                type: string
+        "404":
+          $ref: "#/components/responses/Error"
+  /auth/oauth/{provider}/callback:
+    get:
+      operationId: finishOAuth
+      summary: Finish the OAuth sign-in with a provider.
+      description: >-
+        The provider redirects the browser here. The state parameter must match the signed
+        state of the flow and the oauth_state cookie. The response creates or links the Identity
+        and returns a new token pair. A provider account is linked to the user with the same
+        verified email, or a new user is created.
+      tags: [auth]
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          description: The OAuth provider.
+          schema:
+            $ref: "#/components/schemas/OAuthProvider"
+        - name: code
+          in: query
+          required: true
+          description: The authorization code from the provider.
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          description: The state from the authorization redirect.
+          schema:
+            type: string
+        - name: oauth_state
+          in: cookie
+          required: false
+          description: The cookie that GET /auth/oauth/{provider} set.
+          schema:
+            type: string
+      responses:
+        "200":
+          $ref: "#/components/responses/Tokens"
+        "400":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
   /auth/device:
