@@ -34,7 +34,7 @@ func TestRefreshEndpoint(t *testing.T) {
 	}
 	log := logrus.New()
 	log.SetOutput(io.Discard)
-	e, err := http.New("test", gamification.Rules{}, log, svc)
+	e, err := http.New("test", gamification.Rules{}, log, svc, db)
 	if err != nil {
 		t.Fatal(err)
 	}

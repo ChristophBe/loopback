@@ -11,6 +11,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
 
+	"github.com/ChristophBe/loopback/backend/ent"
 	"github.com/ChristophBe/loopback/backend/gen"
 	"github.com/ChristophBe/loopback/backend/internal/auth"
 	"github.com/ChristophBe/loopback/backend/internal/gamification"
@@ -24,12 +25,13 @@ type Server struct {
 	version string
 	rules   gamification.Rules
 	auth    *auth.Service
+	db      *ent.Client
 }
 
 var _ gen.StrictServerInterface = (*Server)(nil)
 
 // New returns the Echo router with all API routes registered.
-func New(version string, rules gamification.Rules, log *logrus.Logger, authSvc *auth.Service) (*echo.Echo, error) {
+func New(version string, rules gamification.Rules, log *logrus.Logger, authSvc *auth.Service, db *ent.Client) (*echo.Echo, error) {
 	if authSvc == nil {
 		return nil, errors.New("auth service is required")
 	}
@@ -47,7 +49,7 @@ func New(version string, rules gamification.Rules, log *logrus.Logger, authSvc *
 	e.Use(noStore(BasePath + "/auth/"))
 	e.Use(authSvc.Middleware(spec, BasePath))
 
-	s := &Server{version: version, rules: rules, auth: authSvc}
+	s := &Server{version: version, rules: rules, auth: authSvc, db: db}
 	gen.RegisterHandlersWithBaseURL(e, gen.NewStrictHandler(s, nil), BasePath)
 	return e, nil
 }
