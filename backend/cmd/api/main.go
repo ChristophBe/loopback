@@ -48,7 +48,7 @@ func main() {
 		log.WithError(err).Fatal("create auth service")
 	}
 
-	e, err := lbhttp.New(version, rules, log, authSvc)
+	e, err := lbhttp.New(version, rules, log, authSvc, db)
 	if err != nil {
 		log.WithError(err).Fatal("create server")
 	}

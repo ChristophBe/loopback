@@ -25,7 +25,7 @@ func newServer() nethttp.Handler {
 	if err != nil {
 		panic(err)
 	}
-	e, err := http.New("test", rules, log, svc)
+	e, err := http.New("test", rules, log, svc, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -98,7 +98,7 @@ func TestSpecRoutesAreRegistered(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e, err := http.New("test", gamification.Rules{}, log, svc)
+	e, err := http.New("test", gamification.Rules{}, log, svc, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
