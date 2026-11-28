@@ -41,8 +41,8 @@ func LoadSMTPConfig(getenv func(string) string) (SMTPConfig, error) {
 	return cfg, nil
 }
 
-// SMTP sends plain-text email and (via auth.Mailer) the sign-in links. It talks to an SMTP server. It upgrades to TLS when the
-// server offers STARTTLS and authenticates when a username is set.
+// SMTP sends plain-text email through an SMTP server. It upgrades to TLS when
+// the server offers STARTTLS and authenticates when a username is set.
 type SMTP struct {
 	cfg SMTPConfig
 }
