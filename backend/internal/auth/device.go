@@ -29,6 +29,8 @@ var (
 	ErrDeviceCodeExpired = errors.New("device code expired")
 	// ErrDeviceCodeInvalid means the code is unknown or was already exchanged.
 	ErrDeviceCodeInvalid = errors.New("invalid device code")
+	// ErrUserCodeTaken means a live grant already uses the user code.
+	ErrUserCodeTaken = errors.New("user code already in use")
 	// ErrUserCodeNotFound means no pending device code has this user code.
 	ErrUserCodeNotFound = errors.New("user code not found")
 )
@@ -55,9 +57,11 @@ type DeviceGrant struct {
 
 // DeviceStore keeps device grants until they are exchanged or expire.
 type DeviceStore interface {
-	// Create stores a new grant.
-	Create(ctx context.Context, g DeviceGrant) error
-	// Approve assigns the user to the unexpired grant with the user code.
+	// Create stores a new grant and drops grants that expired before now. It
+	// returns ErrUserCodeTaken when a live grant has the same user code.
+	Create(ctx context.Context, g DeviceGrant, now time.Time) error
+	// Approve assigns the user to the unexpired, not yet approved grant with
+	// the user code.
 	Approve(ctx context.Context, userCode string, userID int, now time.Time) error
 	// Redeem removes the approved grant and returns its user. It returns
 	// ErrAuthorizationPending, ErrDeviceCodeExpired or ErrDeviceCodeInvalid.
@@ -77,14 +81,15 @@ func NewMemoryDeviceStore() *MemoryDeviceStore {
 	return &MemoryDeviceStore{grants: map[string]*DeviceGrant{}}
 }
 
-// Create implements DeviceStore. It also drops expired grants.
-func (m *MemoryDeviceStore) Create(_ context.Context, g DeviceGrant) error {
+// Create implements DeviceStore.
+func (m *MemoryDeviceStore) Create(_ context.Context, g DeviceGrant, now time.Time) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	now := time.Now()
 	for k, old := range m.grants {
 		if !old.ExpiresAt.After(now) {
 			delete(m.grants, k)
+		} else if old.UserCode == g.UserCode {
+			return ErrUserCodeTaken
 		}
 	}
 	m.grants[g.DeviceCodeHash] = &g
@@ -96,7 +101,7 @@ func (m *MemoryDeviceStore) Approve(_ context.Context, userCode string, userID i
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, g := range m.grants {
-		if g.UserCode == userCode && g.ExpiresAt.After(now) {
+		if g.UserCode == userCode && g.UserID == 0 && g.ExpiresAt.After(now) {
 			g.UserID = userID
 			return nil
 		}
@@ -135,20 +140,17 @@ func (s *Service) StartDeviceAuthorization(ctx context.Context) (DeviceAuthoriza
 	if err != nil {
 		return DeviceAuthorization{}, err
 	}
-	raw := make([]byte, userCodeLength)
-	if _, err := rand.Read(raw); err != nil {
-		return DeviceAuthorization{}, err
+	var userCode string
+	for range 3 {
+		if userCode, err = newUserCode(); err != nil {
+			return DeviceAuthorization{}, err
+		}
+		now := s.now()
+		err = s.devices.Create(ctx, DeviceGrant{DeviceCodeHash: hash, UserCode: userCode, ExpiresAt: now.Add(DeviceCodeTTL)}, now)
+		if !errors.Is(err, ErrUserCodeTaken) {
+			break
+		}
 	}
-	code := make([]byte, userCodeLength)
-	for i, b := range raw {
-		code[i] = userCodeAlphabet[int(b)%len(userCodeAlphabet)]
-	}
-	userCode := string(code)
-	err = s.devices.Create(ctx, DeviceGrant{
-		DeviceCodeHash: hash,
-		UserCode:       userCode,
-		ExpiresAt:      s.now().Add(DeviceCodeTTL),
-	})
 	if err != nil {
 		return DeviceAuthorization{}, err
 	}
@@ -177,4 +179,24 @@ func (s *Service) ExchangeDeviceCode(ctx context.Context, deviceCode string) (To
 	}
 	device := "plugin"
 	return s.IssueTokens(ctx, userID, &device)
+}
+
+// newUserCode returns userCodeLength characters of userCodeAlphabet. Bytes
+// above the largest multiple of the alphabet size are skipped, so every
+// character is equally likely.
+func newUserCode() (string, error) {
+	const limit = 256 - 256%len(userCodeAlphabet)
+	code := make([]byte, 0, userCodeLength)
+	buf := make([]byte, userCodeLength)
+	for len(code) < userCodeLength {
+		if _, err := rand.Read(buf); err != nil {
+			return "", err
+		}
+		for _, b := range buf {
+			if int(b) < limit && len(code) < userCodeLength {
+				code = append(code, userCodeAlphabet[int(b)%len(userCodeAlphabet)])
+			}
+		}
+	}
+	return string(code), nil
 }
