@@ -25,6 +25,9 @@ func TestCreateUser(t *testing.T) {
 	if u.Email != "learner@example.com" {
 		t.Errorf("email = %q", u.Email)
 	}
+	if u.EmailVerified {
+		t.Error("email_verified must default to false")
+	}
 	if _, err := client.User.Create().SetEmail("learner@example.com").Save(context.Background()); err == nil {
 		t.Error("want a unique violation for a duplicate email")
 	}

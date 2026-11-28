@@ -193,7 +193,7 @@ export interface paths {
         };
         /**
          * Finish the OAuth sign-in with a provider.
-         * @description The provider redirects the browser here. The state parameter must match the signed state of the flow and the oauth_state cookie. The response creates or links the Identity and returns a new token pair. A provider account is linked to the user with the same verified email, or a new user is created.
+         * @description The provider redirects the browser here. The state parameter must match the signed state of the flow and the oauth_state cookie. The response creates or links the Identity and returns a new token pair. A provider account is linked to the user with the same email only when that user's email is verified, or a new user is created. For a user with an unverified email the response is 409. Every response after the state check clears the oauth_state cookie, so the state works once. A 404 or an invalid state keeps it.
          */
         get: operations["finishOAuth"];
         put?: never;
@@ -293,7 +293,7 @@ export interface components {
              * @description Machine-readable code.
              * @enum {string}
              */
-            error: "invalid_request" | "invalid_grant" | "authorization_pending" | "slow_down" | "expired_token" | "access_denied" | "unauthorized" | "not_found";
+            error: "invalid_request" | "invalid_grant" | "authorization_pending" | "slow_down" | "expired_token" | "access_denied" | "unauthorized" | "not_found" | "conflict";
             /** @description Human-readable detail. */
             errorDescription?: string;
         };
@@ -663,9 +663,40 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            200: components["responses"]["Tokens"];
-            400: components["responses"]["Error"];
+            /** @description A new access and refresh token. */
+            200: {
+                headers: {
+                    /** @description Clears the oauth_state cookie, so that the state works once. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description The request failed. */
+            400: {
+                headers: {
+                    /** @description Clears the oauth_state cookie, so that the state works once. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             404: components["responses"]["Error"];
+            /** @description A user with the same email exists, but its email is not verified. The provider account is not linked. */
+            409: {
+                headers: {
+                    /** @description Clears the oauth_state cookie, so that the state works once. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     startDeviceAuthorization: {

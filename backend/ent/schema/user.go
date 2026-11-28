@@ -19,6 +19,9 @@ type User struct {
 func (User) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("email").NotEmpty().Unique(),
+		// email_verified is true once the owner proved control of the mailbox,
+		// by a magic link or by a provider that reports a verified email.
+		field.Bool("email_verified").Default(false),
 		field.Time("created_at").Default(time.Now).Immutable(),
 	}
 }

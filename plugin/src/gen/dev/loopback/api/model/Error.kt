@@ -41,7 +41,7 @@ data class Error (
     /**
      * Machine-readable code.
      *
-     * Values: invalid_request,invalid_grant,authorization_pending,slow_down,expired_token,access_denied,unauthorized,not_found
+     * Values: invalid_request,invalid_grant,authorization_pending,slow_down,expired_token,access_denied,unauthorized,not_found,conflict
      */
     enum class Error(val value: kotlin.String) {
         @SerializedName(value = "invalid_request") invalid_request("invalid_request"),
@@ -51,7 +51,8 @@ data class Error (
         @SerializedName(value = "expired_token") expired_token("expired_token"),
         @SerializedName(value = "access_denied") access_denied("access_denied"),
         @SerializedName(value = "unauthorized") unauthorized("unauthorized"),
-        @SerializedName(value = "not_found") not_found("not_found");
+        @SerializedName(value = "not_found") not_found("not_found"),
+        @SerializedName(value = "conflict") conflict("conflict");
     }
 
 }

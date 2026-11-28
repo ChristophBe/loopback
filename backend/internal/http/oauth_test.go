@@ -113,4 +113,38 @@ func TestOAuthEndpoints(t *testing.T) {
 	if n := db.Identity.Query().CountX(t.Context()); n < 1 {
 		t.Errorf("identities = %d", n)
 	}
+	assertCleared(t, rec)
+
+	// An unverified user with the same email is not linked: 409.
+	unverified := db.User.Create().SetEmail(fmt.Sprintf("http-oauth-unverified-%d@example.com", time.Now().UnixNano())).SaveX(t.Context())
+	svc.ConfigureOAuth(auth.OAuthConfig{BaseURL: "http://localhost/api/v1", Providers: map[string]auth.Provider{
+		"github": fakeProvider{auth.Profile{ID: fmt.Sprintf("g-unv-%d", time.Now().UnixNano()), Email: unverified.Email, EmailVerified: true}},
+	}})
+	rec = get("/api/v1/auth/oauth/github", nil)
+	loc, _ = url.Parse(rec.Header().Get("Location"))
+	cookie := rec.Result().Cookies()[0]
+	rec = get("/api/v1/auth/oauth/github/callback?code=good&state="+url.QueryEscape(loc.Query().Get("state")), cookie)
+	if rec.Code != nethttp.StatusConflict || !strings.Contains(rec.Body.String(), "conflict") {
+		t.Fatalf("unverified: %d %s", rec.Code, rec.Body.String())
+	}
+	assertCleared(t, rec)
+	if n := unverified.QueryIdentities().CountX(t.Context()); n != 0 {
+		t.Errorf("identities of the unverified user = %d", n)
+	}
+
+	// A forged state keeps the cookie, so it cannot delete the cookie of another flow.
+	rec = get("/api/v1/auth/oauth/github/callback?code=good&state=x", cookie)
+	if rec.Code != nethttp.StatusBadRequest || len(rec.Header()["Set-Cookie"]) != 0 {
+		t.Fatalf("bad state: %d %v", rec.Code, rec.Header())
+	}
+}
+
+func assertCleared(t *testing.T, rec *httptest.ResponseRecorder) {
+	t.Helper()
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == "oauth_state" && c.Value == "" && c.MaxAge < 0 {
+			return
+		}
+	}
+	t.Errorf("oauth_state cookie not cleared: %v", rec.Header()["Set-Cookie"])
 }

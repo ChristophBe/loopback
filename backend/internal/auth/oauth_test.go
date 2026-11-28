@@ -102,6 +102,7 @@ func TestOAuthFlow(t *testing.T) {
 
 	t.Run("links to the user with the same verified email", func(t *testing.T) {
 		existing := newUser(t, db)
+		existing.Update().SetEmailVerified(true).ExecX(ctx)
 		svc.ConfigureOAuth(auth.OAuthConfig{BaseURL: "https://loopback.test", Providers: map[string]auth.Provider{
 			"github": &fakeProvider{profile: auth.Profile{ID: fmt.Sprintf("gh-link-%d", suffix), Email: existing.Email, EmailVerified: true}},
 		}})
@@ -115,6 +116,35 @@ func TestOAuthFlow(t *testing.T) {
 		}
 		if n := existing.QueryIdentities().CountX(ctx); n != 1 {
 			t.Errorf("identities = %d, want 1", n)
+		}
+	})
+
+	t.Run("sets email_verified on a new user", func(t *testing.T) {
+		if !db.Identity.Query().Where(identity.ProviderUserID(gh.profile.ID)).QueryUser().OnlyX(ctx).EmailVerified {
+			t.Error("user created by OAuth is not verified")
+		}
+	})
+
+	t.Run("does not link to a user with an unverified email", func(t *testing.T) {
+		existing := newUser(t, db)
+		profile := auth.Profile{ID: fmt.Sprintf("gh-unv-%d", suffix), Email: existing.Email, EmailVerified: true}
+		svc.ConfigureOAuth(auth.OAuthConfig{BaseURL: "https://loopback.test", Providers: map[string]auth.Provider{"github": &fakeProvider{profile: profile}}})
+		state, nonce := start("github")
+		if _, err := svc.FinishOAuth(ctx, "github", "good", state, nonce); !errors.Is(err, auth.ErrUnverifiedAccount) {
+			t.Fatalf("err = %v, want ErrUnverifiedAccount", err)
+		}
+		if n := existing.QueryIdentities().CountX(ctx); n != 0 {
+			t.Errorf("identities = %d, want 0", n)
+		}
+		if db.Identity.Query().Where(identity.ProviderUserID(profile.ID)).ExistX(ctx) {
+			t.Error("identity was created")
+		}
+	})
+
+	t.Run("clears the state cookie", func(t *testing.T) {
+		c := svc.ClearOAuthStateCookie()
+		if c.Name != auth.OAuthStateCookie || c.Value != "" || c.MaxAge >= 0 || c.Path != "/auth/oauth" {
+			t.Errorf("cookie = %+v", c)
 		}
 	})
 
