@@ -10,11 +10,6 @@ import (
 	"strings"
 )
 
-// Mailer sends a plain-text email.
-type Mailer interface {
-	Send(ctx context.Context, to, subject, body string) error
-}
-
 // SMTPConfig is the connection to the mail server. Locally this is Mailpit.
 type SMTPConfig struct {
 	Host     string
@@ -46,13 +41,13 @@ func LoadSMTPConfig(getenv func(string) string) (SMTPConfig, error) {
 	return cfg, nil
 }
 
-// SMTP is a Mailer that talks to an SMTP server. It upgrades to TLS when the
+// SMTP sends plain-text email and (via auth.Mailer) the sign-in links. It talks to an SMTP server. It upgrades to TLS when the
 // server offers STARTTLS and authenticates when a username is set.
 type SMTP struct {
 	cfg SMTPConfig
 }
 
-// NewSMTP returns a Mailer for the server.
+// NewSMTP returns an SMTP sender for the server.
 func NewSMTP(cfg SMTPConfig) *SMTP { return &SMTP{cfg: cfg} }
 
 // Send delivers the message. Header values must not contain line breaks.
