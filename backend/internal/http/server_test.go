@@ -18,18 +18,26 @@ import (
 )
 
 func newServer() nethttp.Handler {
+	srv, _ := newServerWithToken()
+	return srv
+}
+
+func newServerWithToken() (nethttp.Handler, string) {
 	log := logrus.New()
 	log.SetOutput(io.Discard)
-	rules := gamification.Rules{XpPerLesson: 50, XpPerLevel: 500, DailyGoalLessons: 1}
 	svc, err := auth.New(nil, auth.Config{Secret: []byte(strings.Repeat("s", 32)), AccessTTL: time.Minute, RefreshTTL: time.Hour})
 	if err != nil {
 		panic(err)
 	}
-	e, err := http.New("test", rules, log, svc, nil)
+	e, err := http.New("test", gamification.Rules{XpPerLesson: 50, XpPerLevel: 500, DailyGoalLessons: 1}, log, svc, nil)
 	if err != nil {
 		panic(err)
 	}
-	return e
+	token, _, err := svc.IssueAccessToken(1)
+	if err != nil {
+		panic(err)
+	}
+	return e, token
 }
 
 func TestHealth(t *testing.T) {
@@ -83,6 +91,44 @@ func TestAuthEndpointsNotImplemented(t *testing.T) {
 				t.Fatalf("status = %d, want 501", rec.Code)
 			}
 		})
+	}
+}
+
+func TestProgressEndpointsNotImplemented(t *testing.T) {
+	tests := []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{nethttp.MethodPost, "/api/v1/lessons/1/completions", `{"passed":true,"tests":[{"name":"TestX","status":"pass"}]}`},
+		{nethttp.MethodPost, "/api/v1/exercises/1/attempts", `{"answers":{}}`},
+		{nethttp.MethodGet, "/api/v1/me", ""},
+		{nethttp.MethodGet, "/api/v1/me/progress", ""},
+	}
+	srv, token := newServerWithToken()
+	for _, tt := range tests {
+		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Authorization", "Bearer "+token)
+			req.Header.Set("Idempotency-Key", "k1")
+			rec := httptest.NewRecorder()
+			srv.ServeHTTP(rec, req)
+
+			if rec.Code != nethttp.StatusNotImplemented {
+				t.Fatalf("status = %d, want 501", rec.Code)
+			}
+		})
+	}
+}
+
+func TestProgressEndpointsRequireToken(t *testing.T) {
+	for _, path := range []string{"/api/v1/me", "/api/v1/me/progress"} {
+		rec := httptest.NewRecorder()
+		newServer().ServeHTTP(rec, httptest.NewRequest(nethttp.MethodGet, path, nil))
+		if rec.Code != nethttp.StatusUnauthorized {
+			t.Errorf("%s status = %d, want 401", path, rec.Code)
+		}
 	}
 }
 

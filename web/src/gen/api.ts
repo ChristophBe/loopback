@@ -124,6 +124,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/lessons/{id}/completions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report the check result of a lesson.
+         * @description The plugin reports the result of the check run. The server records the completion when the check passed. The Idempotency-Key header makes a retry safe: a replay with the same key and body returns 200 with the stored completion. The same key with a different body or for another lesson yields 409. Keys are scoped to the signed-in learner. A result with passed false is not a completion and yields 400.
+         */
+        post: operations["completeLesson"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exercises/{id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report an attempt at a quiz, flashcard deck or review.
+         * @description The web app reports the learner's answers to one exercise.
+         */
+        post: operations["createExerciseAttempt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return the signed-in learner.
+         * @description Returns the profile of the learner that owns the access token.
+         */
+        get: operations["getMe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Return the progress of the signed-in learner.
+         * @description Returns the position per course and the finished lessons.
+         */
+        get: operations["getMyProgress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/magic-link": {
         parameters: {
             query?: never;
@@ -394,6 +474,40 @@ export interface components {
             xpPerLevel: number;
             dailyGoalLessons: number;
         };
+        Completion: {
+            lessonId: number;
+            /** Format: date-time */
+            completedAt: string;
+        };
+        AttemptRequest: {
+            /** @description Type-specific answers (chosen options, known cards or checked findings). */
+            answers: {
+                [key: string]: unknown;
+            };
+        };
+        Attempt: {
+            id: number;
+            exerciseId: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        Me: {
+            id: number;
+            /** Format: email */
+            email: string;
+        };
+        Progress: {
+            /** @description The position of the learner in every course they started. */
+            courses: components["schemas"]["CourseProgress"][];
+            completedLessonIds: number[];
+        };
+        CourseProgress: {
+            courseId: number;
+            /** @description The next lesson to do, or null when the course is finished. */
+            nextLessonId: number | null;
+            completedLessons: number;
+            totalLessons: number;
+        };
         CheckResult: components["schemas"]["check-result.schema"];
         /** Check result */
         "check-result.schema": {
@@ -431,6 +545,8 @@ export interface components {
     parameters: {
         /** @description Numeric id. */
         Id: number;
+        /** @description Client-generated unique key (a UUID) that makes a retry of the request safe. */
+        IdempotencyKey: string;
     };
     requestBodies: never;
     headers: never;
@@ -573,6 +689,121 @@ export interface operations {
                 };
             };
             400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+        };
+    };
+    completeLesson: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated unique key (a UUID) that makes a retry of the request safe. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description Numeric id. */
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["check-result.schema"];
+            };
+        };
+        responses: {
+            /** @description A replay of an earlier request with the same Idempotency-Key. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Completion"];
+                };
+            };
+            /** @description The completion is recorded. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Completion"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    createExerciseAttempt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Numeric id. */
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttemptRequest"];
+            };
+        };
+        responses: {
+            /** @description The attempt is recorded. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Attempt"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The learner. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            401: components["responses"]["Error"];
+        };
+    };
+    getMyProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The progress. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Progress"];
+                };
+            };
             401: components["responses"]["Error"];
         };
     };

@@ -13,6 +13,8 @@ tags:
     description: XP, levels, streaks and the daily goal.
   - name: content
     description: Courses, lessons and exercises imported from the content repository.
+  - name: progress
+    description: Lesson completions, exercise attempts and the progress of the learner.
   - name: auth
     description: Sign-in with magic link, OAuth and the device-code flow, and token refresh.
 servers:
@@ -136,6 +138,104 @@ paths:
                   $ref: "#/components/schemas/Exercise"
         "400":
           $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+  /lessons/{id}/completions:
+    post:
+      operationId: completeLesson
+      summary: Report the check result of a lesson.
+      description: >-
+        The plugin reports the result of the check run. The server records the completion when
+        the check passed. The Idempotency-Key header makes a retry safe: a replay with the same
+        key and body returns 200 with the stored completion. The same key with a different body
+        or for another lesson yields 409. Keys are scoped to the signed-in learner.
+        A result with passed false is not a completion and yields 400.
+      tags: [progress]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckResult"
+      responses:
+        "400":
+          $ref: "#/components/responses/Error"
+        "200":
+          description: A replay of an earlier request with the same Idempotency-Key.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Completion"
+        "201":
+          description: The completion is recorded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Completion"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+  /exercises/{id}/attempts:
+    post:
+      operationId: createExerciseAttempt
+      summary: Report an attempt at a quiz, flashcard deck or review.
+      description: The web app reports the learner's answers to one exercise.
+      tags: [progress]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttemptRequest"
+      responses:
+        "400":
+          $ref: "#/components/responses/Error"
+        "201":
+          description: The attempt is recorded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attempt"
+        "401":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+  /me:
+    get:
+      operationId: getMe
+      summary: Return the signed-in learner.
+      description: Returns the profile of the learner that owns the access token.
+      tags: [progress]
+      responses:
+        "200":
+          description: The learner.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        "401":
+          $ref: "#/components/responses/Error"
+  /me/progress:
+    get:
+      operationId: getMyProgress
+      summary: Return the progress of the signed-in learner.
+      description: Returns the position per course and the finished lessons.
+      tags: [progress]
+      responses:
+        "200":
+          description: The progress.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Progress"
         "401":
           $ref: "#/components/responses/Error"
   /auth/magic-link:
@@ -346,6 +446,15 @@ components:
       schema:
         type: integer
         minimum: 1
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Client-generated unique key (a UUID) that makes a retry of the request safe.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
   responses:
     Error:
       description: The request failed.
@@ -559,5 +668,71 @@ components:
         dailyGoalLessons:
           type: integer
           minimum: 1
+    Completion:
+      type: object
+      required: [lessonId, completedAt]
+      properties:
+        lessonId:
+          type: integer
+        completedAt:
+          type: string
+          format: date-time
+    AttemptRequest:
+      type: object
+      required: [answers]
+      properties:
+        answers:
+          type: object
+          description: Type-specific answers (chosen options, known cards or checked findings).
+          additionalProperties: true
+    Attempt:
+      type: object
+      required: [id, exerciseId, createdAt]
+      properties:
+        id:
+          type: integer
+        exerciseId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    Me:
+      type: object
+      required: [id, email]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+    Progress:
+      type: object
+      required: [courses, completedLessonIds]
+      properties:
+        courses:
+          type: array
+          description: The position of the learner in every course they started.
+          items:
+            $ref: "#/components/schemas/CourseProgress"
+        completedLessonIds:
+          type: array
+          items:
+            type: integer
+    CourseProgress:
+      type: object
+      required: [courseId, nextLessonId, completedLessons, totalLessons]
+      properties:
+        courseId:
+          type: integer
+        nextLessonId:
+          type: integer
+          nullable: true
+          description: The next lesson to do, or null when the course is finished.
+        completedLessons:
+          type: integer
+          minimum: 0
+        totalLessons:
+          type: integer
+          minimum: 0
     CheckResult:
       $ref: "schemas/check-result.schema.json"
