@@ -193,7 +193,7 @@ export interface paths {
         };
         /**
          * Finish the OAuth sign-in with a provider.
-         * @description The provider redirects the browser here. The state parameter must match the signed state of the flow and the oauth_state cookie. The response creates or links the Identity and returns a new token pair. A provider account is linked to the user with the same email only when that user's email is verified, or a new user is created. For a user with an unverified email the response is 409. Every response clears the oauth_state cookie.
+         * @description The provider redirects the browser here. The state parameter must match the signed state of the flow and the oauth_state cookie. The response creates or links the Identity and returns a new token pair. A provider account is linked to the user with the same email only when that user's email is verified, or a new user is created. For a user with an unverified email the response is 409. Every response after the state check clears the oauth_state cookie, so the state works once. A 404 or an invalid state keeps it.
          */
         get: operations["finishOAuth"];
         put?: never;
