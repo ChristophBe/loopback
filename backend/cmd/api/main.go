@@ -83,7 +83,12 @@ func main() {
 	}
 }
 
+// newMagicLinks returns nil, and the endpoints answer 501, when SMTP_HOST is
+// not set.
 func newMagicLinks(svc *auth.Service) (*auth.MagicLinks, error) {
+	if os.Getenv("SMTP_HOST") == "" {
+		return nil, nil
+	}
 	smtpCfg, err := mail.LoadSMTPConfig(os.Getenv)
 	if err != nil {
 		return nil, err
