@@ -16,6 +16,7 @@ import (
 	"github.com/ChristophBe/loopback/backend/internal/auth"
 	"github.com/ChristophBe/loopback/backend/internal/gamification"
 	lbhttp "github.com/ChristophBe/loopback/backend/internal/http"
+	"github.com/ChristophBe/loopback/backend/internal/mail"
 )
 
 // version is set at build time with -ldflags.
@@ -48,7 +49,12 @@ func main() {
 		log.WithError(err).Fatal("create auth service")
 	}
 
-	var opts []lbhttp.Option
+	magicLinks, err := newMagicLinks(authSvc)
+	if err != nil {
+		log.WithError(err).Fatal("create magic-link sign-in")
+	}
+
+	opts := []lbhttp.Option{lbhttp.WithMagicLinks(magicLinks)}
 	if os.Getenv("AUTH_DEV_LOGIN") == "true" {
 		log.Warn("AUTH_DEV_LOGIN is on: POST /auth/dev-login signs in without credentials")
 		opts = append(opts, lbhttp.WithDevLogin())
@@ -75,6 +81,18 @@ func main() {
 	if err := e.Start(addr); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.WithError(err).Fatal("serve")
 	}
+}
+
+func newMagicLinks(svc *auth.Service) (*auth.MagicLinks, error) {
+	smtpCfg, err := mail.LoadSMTPConfig(os.Getenv)
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := auth.LoadMagicLinkConfig(os.Getenv)
+	if err != nil {
+		return nil, err
+	}
+	return auth.NewMagicLinks(svc, mail.NewSMTP(smtpCfg), cfg)
 }
 
 func env(key, fallback string) string {

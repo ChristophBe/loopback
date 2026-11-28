@@ -144,6 +144,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/magic-link/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign in with the token of an emailed link.
+         * @description The link in the email opens the web app with the token. The app sends it here. The token works once and expires; a used, expired or invalid token yields 401 invalid_grant.
+         */
+        post: operations["verifyMagicLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/oauth/{provider}": {
         parameters: {
             query?: never;
@@ -240,6 +260,10 @@ export interface components {
         MagicLinkRequest: {
             /** Format: email */
             email: string;
+        };
+        MagicLinkVerifyRequest: {
+            /** @description The token from the emailed link. */
+            token: string;
         };
         /** @enum {string} */
         OAuthProvider: "github" | "google";
@@ -529,6 +553,24 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["Error"];
+        };
+    };
+    verifyMagicLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MagicLinkVerifyRequest"];
+            };
+        };
+        responses: {
+            200: components["responses"]["Tokens"];
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
         };
     };
     startOAuth: {
