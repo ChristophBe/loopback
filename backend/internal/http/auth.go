@@ -12,11 +12,6 @@ import (
 
 // The other auth handlers are stubs until the sign-in flows land.
 
-// RequestMagicLink is not implemented yet.
-func (s *Server) RequestMagicLink(context.Context, gen.RequestMagicLinkRequestObject) (gen.RequestMagicLinkResponseObject, error) {
-	return nil, echo.ErrNotImplemented
-}
-
 // StartOAuth is not implemented yet.
 func (s *Server) StartOAuth(context.Context, gen.StartOAuthRequestObject) (gen.StartOAuthResponseObject, error) {
 	return nil, echo.ErrNotImplemented

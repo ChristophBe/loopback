@@ -232,6 +232,12 @@ type MagicLinkRequest struct {
 	Email openapi_types.Email `json:"email"`
 }
 
+// MagicLinkVerifyRequest defines model for MagicLinkVerifyRequest.
+type MagicLinkVerifyRequest struct {
+	// Token The token from the emailed link.
+	Token string `json:"token"`
+}
+
 // OAuthProvider defines model for OAuthProvider.
 type OAuthProvider string
 
@@ -272,6 +278,9 @@ type ListExercisesParams struct {
 // RequestMagicLinkJSONRequestBody defines body for RequestMagicLink for application/json ContentType.
 type RequestMagicLinkJSONRequestBody = MagicLinkRequest
 
+// VerifyMagicLinkJSONRequestBody defines body for VerifyMagicLink for application/json ContentType.
+type VerifyMagicLinkJSONRequestBody = MagicLinkVerifyRequest
+
 // RefreshTokensJSONRequestBody defines body for RefreshTokens for application/json ContentType.
 type RefreshTokensJSONRequestBody = RefreshRequest
 
@@ -286,6 +295,9 @@ type ServerInterface interface {
 	// RequestMagicLink Email a sign-in link.
 	// (POST /auth/magic-link)
 	RequestMagicLink(ctx echo.Context) error
+	// VerifyMagicLink Sign in with the token of an emailed link.
+	// (POST /auth/magic-link/verify)
+	VerifyMagicLink(ctx echo.Context) error
 	// StartOAuth Start the OAuth sign-in with a provider.
 	// (GET /auth/oauth/{provider})
 	StartOAuth(ctx echo.Context, provider OAuthProvider) error
@@ -335,6 +347,15 @@ func (w *ServerInterfaceWrapper) RequestMagicLink(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.RequestMagicLink(ctx)
+	return err
+}
+
+// VerifyMagicLink converts echo context to params.
+func (w *ServerInterfaceWrapper) VerifyMagicLink(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.VerifyMagicLink(ctx)
 	return err
 }
 
@@ -510,6 +531,7 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.GET(options.BaseURL+"/lessons/:id", wrapper.GetLesson, options.OperationMiddlewares["getLesson"]...)
 	router.GET(options.BaseURL+"/exercises", wrapper.ListExercises, options.OperationMiddlewares["listExercises"]...)
 	router.POST(options.BaseURL+"/auth/magic-link", wrapper.RequestMagicLink, options.OperationMiddlewares["requestMagicLink"]...)
+	router.POST(options.BaseURL+"/auth/magic-link/verify", wrapper.VerifyMagicLink, options.OperationMiddlewares["verifyMagicLink"]...)
 	router.GET(options.BaseURL+"/auth/oauth/:provider", wrapper.StartOAuth, options.OperationMiddlewares["startOAuth"]...)
 	router.POST(options.BaseURL+"/auth/device", wrapper.StartDeviceAuthorization, options.OperationMiddlewares["startDeviceAuthorization"]...)
 	router.POST(options.BaseURL+"/auth/token", wrapper.ExchangeDeviceCode, options.OperationMiddlewares["exchangeDeviceCode"]...)
@@ -568,6 +590,56 @@ func (response RequestMagicLink400JSONResponse) VisitRequestMagicLinkResponse(w 
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VerifyMagicLinkRequestObject struct {
+	Body *VerifyMagicLinkJSONRequestBody
+}
+
+type VerifyMagicLinkResponseObject interface {
+	VisitVerifyMagicLinkResponse(w http.ResponseWriter) error
+}
+
+type VerifyMagicLink200JSONResponse struct{ TokensJSONResponse }
+
+func (response VerifyMagicLink200JSONResponse) VisitVerifyMagicLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response.TokensJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VerifyMagicLink400JSONResponse struct{ ErrorJSONResponse }
+
+func (response VerifyMagicLink400JSONResponse) VisitVerifyMagicLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response.ErrorJSONResponse); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type VerifyMagicLink401JSONResponse Error
+
+func (response VerifyMagicLink401JSONResponse) VisitVerifyMagicLinkResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := runtime.JSONMarshalWrite(&buf, response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -937,6 +1009,9 @@ type StrictServerInterface interface {
 	// RequestMagicLink Email a sign-in link.
 	// (POST /auth/magic-link)
 	RequestMagicLink(ctx context.Context, request RequestMagicLinkRequestObject) (RequestMagicLinkResponseObject, error)
+	// VerifyMagicLink Sign in with the token of an emailed link.
+	// (POST /auth/magic-link/verify)
+	VerifyMagicLink(ctx context.Context, request VerifyMagicLinkRequestObject) (VerifyMagicLinkResponseObject, error)
 	// StartOAuth Start the OAuth sign-in with a provider.
 	// (GET /auth/oauth/{provider})
 	StartOAuth(ctx context.Context, request StartOAuthRequestObject) (StartOAuthResponseObject, error)
@@ -1044,6 +1119,52 @@ func (sh *strictHandler) RequestMagicLink(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(RequestMagicLinkResponseObject); ok {
 		return validResponse.VisitRequestMagicLinkResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// VerifyMagicLink operation middleware
+func (sh *strictHandler) VerifyMagicLink(ctx echo.Context) error {
+	var request VerifyMagicLinkRequestObject
+
+	var body VerifyMagicLinkJSONRequestBody
+	var err error
+	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+		// A request validator built on kin-openapi's openapi3filter with
+		// KeepValidatedValue leaves the value it validated on the body. Bind
+		// that value, matching member names exactly, so the handler receives
+		// what was validated instead of a second, case-insensitive decode.
+		// Otherwise bind only the request body, so that path and query
+		// parameters are not also bound into the body struct.
+		if vb, ok := ctx.Request().Body.(interface{ ValidatedValue() any }); !ok || runtime.BindJSONValue(vb.ValidatedValue(), &body) != nil {
+			err = binder.BindBody(ctx, &body)
+		}
+	} else {
+		// A custom binder is installed on the Echo instance; defer to it
+		// entirely, since echo.Binder does not expose body-only binding and
+		// the binder may do more than decode (for example call ctx.Validate).
+		err = ctx.Bind(&body)
+	}
+	if err != nil {
+		return err
+	}
+	request.Body = &body
+
+	handler := func(ctx echo.Context, request any) (any, error) {
+		return sh.ssi.VerifyMagicLink(ctx.Request().Context(), request.(VerifyMagicLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VerifyMagicLink")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(VerifyMagicLinkResponseObject); ok {
+		return validResponse.VisitVerifyMagicLinkResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -1316,48 +1437,50 @@ func (sh *strictHandler) GetLesson(ctx echo.Context, id Id) error {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"G5Tt7fY/AQAA//8=",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

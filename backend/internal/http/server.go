@@ -26,6 +26,8 @@ type Server struct {
 	rules   gamification.Rules
 	auth    *auth.Service
 	db      *ent.Client
+
+	magicLinks *auth.MagicLinks
 }
 
 var _ gen.StrictServerInterface = (*Server)(nil)

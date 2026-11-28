@@ -156,6 +156,28 @@ paths:
           description: The link is on its way.
         "400":
           $ref: "#/components/responses/Error"
+  /auth/magic-link/verify:
+    post:
+      operationId: verifyMagicLink
+      summary: Sign in with the token of an emailed link.
+      description: >-
+        The link in the email opens the web app with the token. The app sends it here.
+        The token works once and expires; a used, expired or invalid token yields 401 invalid_grant.
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MagicLinkVerifyRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/Tokens"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
   /auth/oauth/{provider}:
     get:
       operationId: startOAuth
@@ -291,6 +313,13 @@ components:
         email:
           type: string
           format: email
+    MagicLinkVerifyRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: The token from the emailed link.
     OAuthProvider:
       type: string
       enum: [github, google]

@@ -30,6 +30,11 @@ services:
       REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-720h}
       # Local stack only: enables POST /auth/dev-login. Never set it in production.
       AUTH_DEV_LOGIN: "true"
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_FROM: loopback@localhost
+      WEB_BASE_URL: ${WEB_BASE_URL:-http://localhost:5173}
+      MAGIC_LINK_TTL: ${MAGIC_LINK_TTL:-15m}
     ports: ["8080:8080"]
     volumes:
       - ../backend:/src/backend
