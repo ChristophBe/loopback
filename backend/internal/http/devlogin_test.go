@@ -44,7 +44,7 @@ func TestDevLogin(t *testing.T) {
 		return rec
 	}
 
-	off, err := http.New("test", gamification.Rules{}, log, svc)
+	off, err := http.New("test", gamification.Rules{}, log, svc, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestDevLogin(t *testing.T) {
 		t.Errorf("flag off: %d, want 404", rec.Code)
 	}
 
-	on, err := http.New("test", gamification.Rules{}, log, svc, http.WithDevLogin())
+	on, err := http.New("test", gamification.Rules{}, log, svc, nil, http.WithDevLogin())
 	if err != nil {
 		t.Fatal(err)
 	}
