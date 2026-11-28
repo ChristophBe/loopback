@@ -26,10 +26,9 @@ type devLoginRequest struct {
 
 func (s *Server) devLogin(c echo.Context) error {
 	var req devLoginRequest
-	if c.Request().ContentLength != 0 {
-		if err := c.Bind(&req); err != nil {
-			return c.JSON(http.StatusBadRequest, gen.Error{Error: gen.InvalidRequest})
-		}
+	// Bind accepts an empty body, which signs in the default dev user.
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, gen.Error{Error: gen.InvalidRequest})
 	}
 	tokens, err := s.auth.DevLogin(c.Request().Context(), req.Email)
 	if err != nil {
