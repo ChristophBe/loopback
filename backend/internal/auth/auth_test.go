@@ -121,8 +121,10 @@ func TestAccessToken(t *testing.T) {
 	otherIssuer.Issuer = "someone"
 	badSubject := valid
 	badSubject.Subject = "abc"
-	last := token[len(token)-1]
-	flipped := token[:len(token)-1] + map[bool]string{true: "A", false: "B"}[last != 'A']
+	// Flip the first character of the signature: the last base64 character only carries
+	// padding bits, so changing it can leave the decoded signature unchanged.
+	sigStart := strings.LastIndex(token, ".") + 1
+	flipped := token[:sigStart] + map[bool]string{true: "A", false: "B"}[token[sigStart] != 'A'] + token[sigStart+1:]
 
 	for name, tok := range map[string]string{
 		"empty":        "",
