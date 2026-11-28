@@ -105,8 +105,12 @@ func init() {
 	userDescEmail := userFields[0].Descriptor()
 	// user.EmailValidator is a validator for the "email" field. It is called by the builders before save.
 	user.EmailValidator = userDescEmail.Validators[0].(func(string) error)
+	// userDescEmailVerified is the schema descriptor for email_verified field.
+	userDescEmailVerified := userFields[1].Descriptor()
+	// user.DefaultEmailVerified holds the default value on creation for the email_verified field.
+	user.DefaultEmailVerified = userDescEmailVerified.Default.(bool)
 	// userDescCreatedAt is the schema descriptor for created_at field.
-	userDescCreatedAt := userFields[1].Descriptor()
+	userDescCreatedAt := userFields[2].Descriptor()
 	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
 	user.DefaultCreatedAt = userDescCreatedAt.Default.(func() time.Time)
 }

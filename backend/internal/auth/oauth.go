@@ -37,6 +37,9 @@ var (
 	ErrOAuthExchange = errors.New("oauth code exchange failed")
 	// ErrEmailUnverified is returned when the provider gives no verified email.
 	ErrEmailUnverified = errors.New("provider returned no verified email")
+	// ErrUnverifiedAccount is returned when the email belongs to a user whose
+	// email is not verified. The provider account is not linked to it.
+	ErrUnverifiedAccount = errors.New("user with this email is not verified")
 )
 
 // Profile is the account that a provider signed in.
@@ -92,17 +95,27 @@ func (s *Service) StartOAuth(provider string) (authURL string, cookie *http.Cook
 		return "", nil, err
 	}
 	expires := s.now().Add(oauthStateTTL)
-	cookie = &http.Cookie{ //nolint:gosec // Secure follows the scheme of the public URL; local dev runs on http.
+	cookie = s.stateCookie(nonce, expires, int(oauthStateTTL.Seconds()))
+	return p.AuthURL(s.signState(provider, nonce, expires), redirect), cookie, nil
+}
+
+// ClearOAuthStateCookie returns the cookie that deletes the state cookie. The
+// callback sends it with every answer, so a state works once.
+func (s *Service) ClearOAuthStateCookie() *http.Cookie {
+	return s.stateCookie("", time.Unix(0, 0), -1)
+}
+
+func (s *Service) stateCookie(value string, expires time.Time, maxAge int) *http.Cookie {
+	return &http.Cookie{ //nolint:gosec // Secure follows the scheme of the public URL; local dev runs on http.
 		Name:     OAuthStateCookie,
-		Value:    nonce,
+		Value:    value,
 		Path:     s.oauthCookiePath(),
 		Expires:  expires,
-		MaxAge:   int(oauthStateTTL.Seconds()),
+		MaxAge:   maxAge,
 		HttpOnly: true,
 		Secure:   strings.HasPrefix(s.oauth.BaseURL, "https://"),
 		SameSite: http.SameSiteLaxMode,
 	}
-	return p.AuthURL(s.signState(provider, nonce, expires), redirect), cookie, nil
 }
 
 // oauthCookiePath scopes the state cookie to the OAuth routes below the path
@@ -117,7 +130,8 @@ func (s *Service) oauthCookiePath() string {
 
 // FinishOAuth checks the state against the cookie, exchanges the code and
 // signs the account in: it uses the Identity of the provider account, links
-// the account to the user with the same verified email, or creates the user.
+// the account to the user with the same email if that email is verified, or
+// creates the user. A user with an unverified email yields ErrUnverifiedAccount.
 func (s *Service) FinishOAuth(ctx context.Context, provider, code, state, cookieNonce string) (Tokens, error) {
 	p, redirect, err := s.oauthProvider(provider)
 	if err != nil {
@@ -168,17 +182,18 @@ func (s *Service) upsertIdentity(ctx context.Context, provider identity.Provider
 
 func linkOrCreateUser(ctx context.Context, db *ent.Client, provider identity.Provider, profile Profile) (int, error) {
 	email := strings.ToLower(profile.Email)
-	userID, err := db.User.Query().Where(user.EmailEqualFold(email)).OnlyID(ctx)
+	u, err := db.User.Query().Where(user.EmailEqualFold(email)).Only(ctx)
 	if ent.IsNotFound(err) {
-		var created *ent.User
-		created, err = db.User.Create().SetEmail(email).Save(ctx)
-		if err == nil {
-			userID = created.ID
-		}
+		// The provider vouches for the email, so the new user starts verified.
+		u, err = db.User.Create().SetEmail(email).SetEmailVerified(true).Save(ctx)
 	}
 	if err != nil {
 		return 0, fmt.Errorf("find or create user: %w", err)
 	}
+	if !u.EmailVerified {
+		return 0, ErrUnverifiedAccount
+	}
+	userID := u.ID
 	err = db.Identity.Create().
 		SetProvider(provider).
 		SetProviderUserID(profile.ID).

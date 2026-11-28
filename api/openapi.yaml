@@ -218,7 +218,8 @@ paths:
         The provider redirects the browser here. The state parameter must match the signed
         state of the flow and the oauth_state cookie. The response creates or links the Identity
         and returns a new token pair. A provider account is linked to the user with the same
-        verified email, or a new user is created.
+        email only when that user's email is verified, or a new user is created. For a user with an
+        unverified email the response is 409. Every response clears the oauth_state cookie.
       tags: [auth]
       security: []
       parameters:
@@ -248,11 +249,42 @@ paths:
             type: string
       responses:
         "200":
-          $ref: "#/components/responses/Tokens"
+          description: A new access and refresh token.
+          headers:
+            Set-Cookie:
+              description: Clears the oauth_state cookie, so that the state works once.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
         "400":
-          $ref: "#/components/responses/Error"
+          description: The request failed.
+          headers:
+            Set-Cookie:
+              description: Clears the oauth_state cookie, so that the state works once.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "404":
           $ref: "#/components/responses/Error"
+        "409":
+          description: >-
+            A user with the same email exists, but its email is not verified. The provider account
+            is not linked.
+          headers:
+            Set-Cookie:
+              description: Clears the oauth_state cookie, so that the state works once.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /auth/device:
     post:
       operationId: startDeviceAuthorization
@@ -376,6 +408,7 @@ components:
             - access_denied
             - unauthorized
             - not_found
+            - conflict
         errorDescription:
           type: string
           description: Human-readable detail.

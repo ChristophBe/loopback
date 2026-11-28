@@ -207,13 +207,19 @@ func (m *MagicLinks) ensureUser(ctx context.Context, email string) (int, error) 
 	db := m.svc.db
 	u, err := db.User.Query().Where(user.Email(email)).Only(ctx)
 	if ent.IsNotFound(err) {
-		u, err = db.User.Create().SetEmail(email).Save(ctx)
+		u, err = db.User.Create().SetEmail(email).SetEmailVerified(true).Save(ctx)
 		if ent.IsConstraintError(err) {
 			u, err = db.User.Query().Where(user.Email(email)).Only(ctx)
 		}
 	}
 	if err != nil {
 		return 0, fmt.Errorf("find or create user: %w", err)
+	}
+	if !u.EmailVerified {
+		// The link proves control of the mailbox.
+		if err := db.User.UpdateOneID(u.ID).SetEmailVerified(true).Exec(ctx); err != nil {
+			return 0, fmt.Errorf("verify email: %w", err)
+		}
 	}
 	exists, err := db.Identity.Query().
 		Where(identity.ProviderEQ(identity.ProviderEmail), identity.ProviderUserID(email)).

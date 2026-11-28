@@ -100,6 +100,9 @@ func TestMagicLinkSignIn(t *testing.T) {
 	if user.Email != email {
 		t.Errorf("email = %q, want %q", user.Email, email)
 	}
+	if !user.EmailVerified {
+		t.Error("magic link user is not verified")
+	}
 	if !db.Identity.Query().Where(identity.ProviderEQ(identity.ProviderEmail), identity.ProviderUserID(email)).ExistX(ctx) {
 		t.Error("no email identity")
 	}
@@ -223,5 +226,24 @@ func TestMagicLinkConfig(t *testing.T) {
 	}
 	if _, err := auth.NewMagicLinks(nil, &fakeMailer{}, auth.MagicLinkConfig{}); err == nil {
 		t.Error("nil service accepted")
+	}
+}
+
+func TestMagicLinkVerifiesExistingUser(t *testing.T) {
+	m, _, db, mailer, _ := newMagicLinks(t)
+	ctx := t.Context()
+	email := uniqueEmail("unverified")
+	u := db.User.Create().SetEmail(email).SaveX(ctx)
+	if u.EmailVerified {
+		t.Fatal("a new user starts unverified")
+	}
+	if err := m.Request(ctx, email); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := m.Verify(ctx, mailer.token(t)); err != nil {
+		t.Fatal(err)
+	}
+	if !db.User.GetX(ctx, u.ID).EmailVerified {
+		t.Error("magic link did not verify the email")
 	}
 }
