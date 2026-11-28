@@ -52,16 +52,11 @@ class ContentService(
     private fun <T> get(
         path: String,
         type: TypeToken<T>,
-    ): ContentResult<T> {
-        val response = send(path)
-        val failure = response as? ContentResult.Failure
-        val http = response as? ContentResult.Success
-        return when {
-            failure != null -> failure
-            http != null -> map(http.value, type)
-            else -> ContentResult.Offline()
+    ): ContentResult<T> =
+        when (val response = send(path)) {
+            is ContentResult.Failure -> response
+            is ContentResult.Success -> map(response.value, type)
         }
-    }
 
     private fun send(path: String): ContentResult<HttpResponse<String>> =
         try {
