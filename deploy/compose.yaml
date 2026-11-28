@@ -59,7 +59,7 @@ services:
       retries: 30
 
   migrate:
-    image: arigaio/atlas:latest-alpine
+    image: arigaio/atlas:1.2.0-alpine
     command: ["migrate", "apply", "--dir", "file://migrations", "--url", "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable"]
     volumes:
       - ../backend/migrations:/migrations:ro
