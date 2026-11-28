@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -23,7 +24,6 @@ const (
 	// OAuthStateCookie is the cookie that binds an OAuth flow to the browser.
 	OAuthStateCookie = "oauth_state"
 	oauthStateTTL    = 10 * time.Minute
-	oauthCookiePath  = "/api/v1/auth/oauth"
 )
 
 var (
@@ -32,7 +32,8 @@ var (
 	// ErrInvalidState is returned when the state is malformed, forged, expired,
 	// for another provider or does not match the cookie.
 	ErrInvalidState = errors.New("invalid oauth state")
-	// ErrOAuthExchange is returned when the provider rejects the code.
+	// ErrOAuthExchange is returned when the provider rejects the code. A
+	// Provider wraps it for that case only, so outages stay server errors.
 	ErrOAuthExchange = errors.New("oauth code exchange failed")
 	// ErrEmailUnverified is returned when the provider gives no verified email.
 	ErrEmailUnverified = errors.New("provider returned no verified email")
@@ -94,7 +95,7 @@ func (s *Service) StartOAuth(provider string) (authURL string, cookie *http.Cook
 	cookie = &http.Cookie{ //nolint:gosec // Secure follows the scheme of the public URL; local dev runs on http.
 		Name:     OAuthStateCookie,
 		Value:    nonce,
-		Path:     oauthCookiePath,
+		Path:     s.oauthCookiePath(),
 		Expires:  expires,
 		MaxAge:   int(oauthStateTTL.Seconds()),
 		HttpOnly: true,
@@ -102,6 +103,16 @@ func (s *Service) StartOAuth(provider string) (authURL string, cookie *http.Cook
 		SameSite: http.SameSiteLaxMode,
 	}
 	return p.AuthURL(s.signState(provider, nonce, expires), redirect), cookie, nil
+}
+
+// oauthCookiePath scopes the state cookie to the OAuth routes below the path
+// of the public base URL.
+func (s *Service) oauthCookiePath() string {
+	path := "/auth/oauth"
+	if u, err := url.Parse(s.oauth.BaseURL); err == nil {
+		path = u.Path + path
+	}
+	return path
 }
 
 // FinishOAuth checks the state against the cookie, exchanges the code and
@@ -117,12 +128,16 @@ func (s *Service) FinishOAuth(ctx context.Context, provider, code, state, cookie
 	}
 	profile, err := p.Exchange(ctx, code, redirect)
 	if err != nil {
-		return Tokens{}, fmt.Errorf("%w: %v", ErrOAuthExchange, err)
+		return Tokens{}, fmt.Errorf("exchange %s code: %w", provider, err)
 	}
 	if profile.ID == "" || profile.Email == "" || !profile.EmailVerified {
 		return Tokens{}, ErrEmailUnverified
 	}
 	userID, err := s.upsertIdentity(ctx, identity.Provider(provider), profile)
+	if ent.IsConstraintError(err) {
+		// A concurrent callback for the same account created the rows first.
+		userID, err = s.upsertIdentity(ctx, identity.Provider(provider), profile)
+	}
 	if err != nil {
 		return Tokens{}, err
 	}

@@ -3,7 +3,6 @@ package http_test
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	nethttp "net/http"
@@ -32,7 +31,7 @@ func (f fakeProvider) AuthURL(state, _ string) string {
 
 func (f fakeProvider) Exchange(_ context.Context, code, _ string) (auth.Profile, error) {
 	if code != "good" {
-		return auth.Profile{}, errors.New("bad code")
+		return auth.Profile{}, fmt.Errorf("%w: bad code", auth.ErrOAuthExchange)
 	}
 	return f.profile, nil
 }
