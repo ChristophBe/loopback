@@ -45,7 +45,7 @@ func newDeviceEnv(t *testing.T, db *ent.Client) *deviceEnv {
 	env := &deviceEnv{svc: svc}
 	log := logrus.New()
 	log.SetOutput(io.Discard)
-	env.e, err = http.New("test", gamification.Rules{}, log, svc)
+	env.e, err = http.New("test", gamification.Rules{}, log, svc, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
