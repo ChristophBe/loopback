@@ -3,12 +3,17 @@ package mail
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
 	"net/smtp"
 	"strings"
+	"time"
 )
+
+// timeout bounds one delivery.
+const timeout = 30 * time.Second
 
 // SMTPConfig is the connection to the mail server. Locally this is Mailpit.
 type SMTPConfig struct {
@@ -60,19 +65,61 @@ func (m *SMTP) Send(ctx context.Context, to, subject, body string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	var auth smtp.Auth
-	if m.cfg.Username != "" {
-		auth = smtp.PlainAuth("", m.cfg.Username, m.cfg.Password, m.cfg.Host)
-	}
 	msg := "From: " + m.cfg.From + "\r\n" +
 		"To: " + to + "\r\n" +
 		"Subject: " + subject + "\r\n" +
 		"MIME-Version: 1.0\r\n" +
 		"Content-Type: text/plain; charset=UTF-8\r\n\r\n" +
 		strings.ReplaceAll(body, "\n", "\r\n")
-	addr := net.JoinHostPort(m.cfg.Host, m.cfg.Port)
-	if err := smtp.SendMail(addr, auth, m.cfg.From, []string{to}, []byte(msg)); err != nil {
+	if err := m.deliver(ctx, to, []byte(msg)); err != nil {
 		return fmt.Errorf("send mail: %w", err)
 	}
 	return nil
+}
+
+// deliver runs one SMTP transaction. The context and a fixed deadline bound
+// the dial and every read and write.
+func (m *SMTP) deliver(ctx context.Context, to string, msg []byte) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	var d net.Dialer
+	conn, err := d.DialContext(ctx, "tcp", net.JoinHostPort(m.cfg.Host, m.cfg.Port))
+	if err != nil {
+		return err
+	}
+	deadline, _ := ctx.Deadline()
+	_ = conn.SetDeadline(deadline)
+	c, err := smtp.NewClient(conn, m.cfg.Host)
+	if err != nil {
+		_ = conn.Close()
+		return err
+	}
+	defer func() { _ = c.Close() }()
+	if ok, _ := c.Extension("STARTTLS"); ok {
+		if err := c.StartTLS(&tls.Config{ServerName: m.cfg.Host, MinVersion: tls.VersionTLS12}); err != nil {
+			return err
+		}
+	}
+	if m.cfg.Username != "" {
+		if err := c.Auth(smtp.PlainAuth("", m.cfg.Username, m.cfg.Password, m.cfg.Host)); err != nil {
+			return err
+		}
+	}
+	if err := c.Mail(m.cfg.From); err != nil {
+		return err
+	}
+	if err := c.Rcpt(to); err != nil {
+		return err
+	}
+	w, err := c.Data()
+	if err != nil {
+		return err
+	}
+	if _, err := w.Write(msg); err != nil {
+		return err
+	}
+	if err := w.Close(); err != nil {
+		return err
+	}
+	return c.Quit()
 }

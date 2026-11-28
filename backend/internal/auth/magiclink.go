@@ -99,7 +99,7 @@ func (m *MagicLinks) Request(ctx context.Context, email string) error {
 	}
 	link := strings.TrimRight(m.cfg.BaseURL, "/") + "/auth/verify?token=" + url.QueryEscape(token)
 	body := fmt.Sprintf("Sign in to loopback with this link:\n\n%s\n\nThe link works once and expires in %s. "+
-		"If you did not ask for it, ignore this email.\n", link, m.cfg.TTL.Round(time.Minute))
+		"If you did not ask for it, ignore this email.\n", link, m.cfg.TTL.Round(time.Second))
 	return m.mailer.Send(ctx, email, "Your loopback sign-in link", body)
 }
 
