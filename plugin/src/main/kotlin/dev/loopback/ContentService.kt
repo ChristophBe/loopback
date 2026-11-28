@@ -24,7 +24,7 @@ fun interface TokenProvider {
 class ContentService(
     private val baseUrl: () -> String,
     private val tokens: TokenProvider,
-    private val http: HttpClient = HttpClient.newHttpClient(),
+    private val http: HttpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build(),
 ) {
     private val gson = Gson()
 
@@ -83,7 +83,7 @@ class ContentService(
         type: TypeToken<T>,
     ): ContentResult<T> =
         when (val status = response.statusCode()) {
-            HTTP_OK -> parse(response.body(), type)
+            in HTTP_OK..HTTP_LAST_SUCCESS -> parse(response.body(), type)
             HTTP_UNAUTHORIZED -> ContentResult.Unauthorized(errorMessage(response.body(), "unauthorized"))
             HTTP_NOT_FOUND -> ContentResult.NotFound(errorMessage(response.body(), "not found"))
             else -> ContentResult.ServerError(status, errorMessage(response.body(), "HTTP $status"))
@@ -116,6 +116,7 @@ class ContentService(
 
     private companion object {
         const val HTTP_OK = 200
+        const val HTTP_LAST_SUCCESS = 299
         const val HTTP_UNAUTHORIZED = 401
         const val HTTP_NOT_FOUND = 404
         val TIMEOUT: Duration = Duration.ofSeconds(10)

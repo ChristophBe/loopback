@@ -59,6 +59,13 @@ class ContentServiceTest {
     }
 
     @Test
+    fun `tolerates a trailing slash in the base url and other 2xx statuses`() {
+        status = 203
+        assertIs<ContentResult.Success<List<Course>>>(service(baseUrl() + "/").listCourses())
+        assertEquals("/api/v1/courses", seen.single().first)
+    }
+
+    @Test
     fun `omits the authorization header without a token`() {
         token = null
         service().listCourses()
