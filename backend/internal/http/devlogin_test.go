@@ -15,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/ChristophBe/loopback/backend/ent/enttest"
+	"github.com/ChristophBe/loopback/backend/ent/user"
 	"github.com/ChristophBe/loopback/backend/gen"
 	"github.com/ChristophBe/loopback/backend/internal/auth"
 	"github.com/ChristophBe/loopback/backend/internal/gamification"
@@ -71,18 +72,13 @@ func TestDevLogin(t *testing.T) {
 	if code != nethttp.StatusOK || first.RefreshToken == "" || first.ExpiresIn != 600 {
 		t.Fatalf("login: %d %+v", code, first)
 	}
-	_, second := login(`{}`)
+	_, second := login(`{"email":"victim@example.com"}`)
 	id1, err1 := svc.ParseAccessToken(first.AccessToken)
 	id2, err2 := svc.ParseAccessToken(second.AccessToken)
 	if err1 != nil || err2 != nil || id1 != id2 {
-		t.Errorf("dev user is not stable: %d (%v) vs %d (%v)", id1, err1, id2, err2)
+		t.Errorf("dev user is not fixed: %d (%v) vs %d (%v)", id1, err1, id2, err2)
 	}
-
-	_, other := login(`{"email":"someone-dev@example.com"}`)
-	if id, err := svc.ParseAccessToken(other.AccessToken); err != nil || id == id1 {
-		t.Errorf("custom email: id %d (%v), dev id %d", id, err, id1)
-	}
-	if code, _ := login(`{`); code != nethttp.StatusBadRequest {
-		t.Errorf("malformed body: %d, want 400", code)
+	if n := db.User.Query().CountX(t.Context()); n < 1 || db.User.Query().Where(user.Email("victim@example.com")).ExistX(t.Context()) {
+		t.Errorf("dev login must not touch other accounts (users: %d)", n)
 	}
 }
