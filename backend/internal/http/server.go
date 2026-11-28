@@ -31,7 +31,7 @@ type Server struct {
 var _ gen.StrictServerInterface = (*Server)(nil)
 
 // New returns the Echo router with all API routes registered.
-func New(version string, rules gamification.Rules, log *logrus.Logger, authSvc *auth.Service, db *ent.Client) (*echo.Echo, error) {
+func New(version string, rules gamification.Rules, log *logrus.Logger, authSvc *auth.Service, db *ent.Client, opts ...Option) (*echo.Echo, error) {
 	if authSvc == nil {
 		return nil, errors.New("auth service is required")
 	}
@@ -51,6 +51,9 @@ func New(version string, rules gamification.Rules, log *logrus.Logger, authSvc *
 
 	s := &Server{version: version, rules: rules, auth: authSvc, db: db}
 	gen.RegisterHandlersWithBaseURL(e, gen.NewStrictHandler(s, nil), BasePath)
+	for _, opt := range opts {
+		opt(s, e)
+	}
 	return e, nil
 }
 
