@@ -69,6 +69,8 @@ A modular monolith in Go. Echo is the router, with middleware for auth, request 
 
 Access tokens are HS256 JWTs (`sub` is the user id, issuer `loopback`) signed with `JWT_SECRET`. The API refuses to start when the secret is unset or shorter than 32 bytes. `JWT_ACCESS_TTL` sets the access-token lifetime (default `15m`). A refresh token is 32 random bytes; only its SHA-256 is stored in `Session.token_hash`, and `REFRESH_TOKEN_TTL` (default `720h`) sets its lifetime. `POST /auth/refresh` revokes the presented session and creates a new one, so each refresh token works once and a revoked or expired token is rejected with `invalid_grant`. The auth middleware reads the security requirements from the embedded OpenAPI spec: every operation without `security: []` needs a valid `Authorization: Bearer` access token, otherwise the API answers `401` with the `Error` schema. Handlers read the user with `auth.UserID(ctx)`.
 
+Device-code sign-in: `POST /auth/device` returns a device code (secret, polled with `POST /auth/token`), a user code (`XXXX-XXXX`) and the verification URI (`DEVICE_VERIFICATION_URI`); both codes live 10 minutes. The learner enters the user code in the web app, which calls `POST /auth/device/approve` with the learner's access token. Until then `POST /auth/token` answers `400 authorization_pending`, afterwards it returns a token pair once (the session is named `plugin`), and after expiry `400 expired_token`. The grants are held in memory (`auth.MemoryDeviceStore`, behind `auth.DeviceStore`), so they are lost on a restart and not shared between API instances.
+
 ### Data model
 
 ent entities with edges (for example `User` has many `Completion` and `XpEvent`):
@@ -79,7 +81,7 @@ ent entities with edges (for example `User` has many `Completion` and `XpEvent`)
 
 | Area | Endpoints |
 |---|---|
-| auth | `POST /auth/magic-link`, `GET /auth/oauth/{provider}`, `POST /auth/device`, `POST /auth/token`, `POST /auth/refresh` |
+| auth | `POST /auth/magic-link`, `GET /auth/oauth/{provider}`, `POST /auth/device`, `POST /auth/device/approve`, `POST /auth/token`, `POST /auth/refresh` |
 | content | `GET /courses`, `GET /courses/{id}/lessons`, `GET /lessons/{id}` (instructions, starter files, tests, hints, owned files), `GET /exercises?type=`, `GET /exercises/{id}` |
 | progress | `GET /me`, `GET /me/progress`, `POST /lessons/{id}/completions` (the plugin reports the check result and test summary), `POST /exercises/{id}/attempts` |
 | gamification | `GET /me/stats` (XP, level, XP to next level, streak, daily goal), `GET /me/xp-events`, `GET /config` |

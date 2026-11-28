@@ -22,6 +22,9 @@ type Service struct {
 	db  *ent.Client
 	cfg Config
 	now func() time.Time
+
+	devices         DeviceStore
+	verificationURI string
 }
 
 // New returns a Service. db may be nil when only access tokens are verified.
@@ -29,7 +32,7 @@ func New(db *ent.Client, cfg Config) (*Service, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
-	return &Service{db: db, cfg: cfg, now: time.Now}, nil
+	return &Service{db: db, cfg: cfg, now: time.Now, devices: NewMemoryDeviceStore(), verificationURI: DefaultVerificationURI}, nil
 }
 
 // IssueTokens starts a new session for the user.

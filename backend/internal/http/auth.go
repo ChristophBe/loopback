@@ -17,16 +17,6 @@ func (s *Server) StartOAuth(context.Context, gen.StartOAuthRequestObject) (gen.S
 	return nil, echo.ErrNotImplemented
 }
 
-// StartDeviceAuthorization is not implemented yet.
-func (s *Server) StartDeviceAuthorization(context.Context, gen.StartDeviceAuthorizationRequestObject) (gen.StartDeviceAuthorizationResponseObject, error) {
-	return nil, echo.ErrNotImplemented
-}
-
-// ExchangeDeviceCode is not implemented yet.
-func (s *Server) ExchangeDeviceCode(context.Context, gen.ExchangeDeviceCodeRequestObject) (gen.ExchangeDeviceCodeResponseObject, error) {
-	return nil, echo.ErrNotImplemented
-}
-
 // RefreshTokens rotates the refresh token and returns a new token pair.
 func (s *Server) RefreshTokens(ctx context.Context, req gen.RefreshTokensRequestObject) (gen.RefreshTokensResponseObject, error) {
 	if req.Body == nil || req.Body.RefreshToken == "" {

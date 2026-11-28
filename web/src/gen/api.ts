@@ -204,6 +204,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/device/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a device code as the signed-in user.
+         * @description The web app calls this after the learner enters the user code. The next poll of POST /auth/token returns tokens for the learner.
+         */
+        post: operations["approveDeviceCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/token": {
         parameters: {
             query?: never;
@@ -278,6 +298,10 @@ export interface components {
             interval: number;
             /** @description Seconds until the device code expires. */
             expiresIn: number;
+        };
+        ApproveDeviceRequest: {
+            /** @description The code shown by the plugin. Case and dashes are ignored. */
+            userCode: string;
         };
         TokenRequest: {
             deviceCode: string;
@@ -615,6 +639,31 @@ export interface operations {
                     "application/json": components["schemas"]["DeviceAuthorization"];
                 };
             };
+        };
+    };
+    approveDeviceCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveDeviceRequest"];
+            };
+        };
+        responses: {
+            /** @description The code is approved. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            404: components["responses"]["Error"];
         };
     };
     exchangeDeviceCode: {
