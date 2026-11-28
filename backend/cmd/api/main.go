@@ -48,7 +48,12 @@ func main() {
 		log.WithError(err).Fatal("create auth service")
 	}
 
-	e, err := lbhttp.New(version, rules, log, authSvc, db)
+	var opts []lbhttp.Option
+	if os.Getenv("AUTH_DEV_LOGIN") == "true" {
+		log.Warn("AUTH_DEV_LOGIN is on: POST /auth/dev-login signs in without credentials")
+		opts = append(opts, lbhttp.WithDevLogin())
+	}
+	e, err := lbhttp.New(version, rules, log, authSvc, db, opts...)
 	if err != nil {
 		log.WithError(err).Fatal("create server")
 	}

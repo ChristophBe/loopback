@@ -28,6 +28,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (see deploy/.env.example)}
       JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
       REFRESH_TOKEN_TTL: ${REFRESH_TOKEN_TTL:-720h}
+      # Local stack only: enables POST /auth/dev-login. Never set it in production.
+      AUTH_DEV_LOGIN: "true"
     ports: ["8080:8080"]
     volumes:
       - ../backend:/src/backend
