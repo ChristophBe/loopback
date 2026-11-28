@@ -3,12 +3,20 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
+)
+
+const (
+	providerTimeout = 10 * time.Second
+	maxProviderBody = 1 << 20
 )
 
 // LoadOAuthConfig reads OAUTH_BASE_URL (default http://localhost:8080/api/v1)
@@ -49,7 +57,13 @@ func (p *httpProvider) AuthURL(state, redirectURL string) string {
 func (p *httpProvider) Exchange(ctx context.Context, code, redirectURL string) (Profile, error) {
 	cfg := p.oauth
 	cfg.RedirectURL = redirectURL
+	ctx, cancel := context.WithTimeout(ctx, providerTimeout)
+	defer cancel()
 	token, err := cfg.Exchange(ctx, code)
+	var rejected *oauth2.RetrieveError
+	if errors.As(err, &rejected) && rejected.Response != nil && rejected.Response.StatusCode < 500 {
+		return Profile{}, fmt.Errorf("%w: %v", ErrOAuthExchange, err)
+	}
 	if err != nil {
 		return Profile{}, err
 	}
@@ -70,7 +84,7 @@ func getJSON(ctx context.Context, client *http.Client, url string, dst any) erro
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("GET %s: %s", url, resp.Status)
 	}
-	return json.NewDecoder(resp.Body).Decode(dst)
+	return json.NewDecoder(io.LimitReader(resp.Body, maxProviderBody)).Decode(dst)
 }
 
 func githubProfile(ctx context.Context, client *http.Client) (Profile, error) {

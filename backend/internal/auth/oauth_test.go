@@ -24,7 +24,7 @@ func (f *fakeProvider) AuthURL(state, redirectURL string) string {
 
 func (f *fakeProvider) Exchange(_ context.Context, code, _ string) (auth.Profile, error) {
 	if code != "good" {
-		return auth.Profile{}, errors.New("bad code")
+		return auth.Profile{}, fmt.Errorf("%w: bad code", auth.ErrOAuthExchange)
 	}
 	return f.profile, f.err
 }
@@ -64,7 +64,7 @@ func TestOAuthFlow(t *testing.T) {
 		if got := u.Query().Get("redirect_uri"); got != "https://loopback.test/api/v1/auth/oauth/github/callback" {
 			t.Errorf("redirect_uri = %q", got)
 		}
-		if cookie.Name != auth.OAuthStateCookie || !cookie.HttpOnly || !cookie.Secure || cookie.Value == "" {
+		if cookie.Name != auth.OAuthStateCookie || !cookie.HttpOnly || !cookie.Secure || cookie.Value == "" || cookie.Path != "/api/v1/auth/oauth" {
 			t.Errorf("cookie = %+v", cookie)
 		}
 		if _, _, err := svc.StartOAuth("google"); !errors.Is(err, auth.ErrUnknownProvider) {
